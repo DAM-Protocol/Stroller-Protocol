@@ -1,9 +1,10 @@
 import "./App.css";
+import { Heading } from "@chakra-ui/react";
 
 function App() {
 	return (
 		<div className="App">
-			<h1>Stroll</h1>
+			<Heading as="h1">Stroll</Heading>
 		</div>
 	);
 }
