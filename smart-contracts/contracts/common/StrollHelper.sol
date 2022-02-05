@@ -3,6 +3,15 @@ pragma solidity ^0.8.4;
 
 import {ISuperToken} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+/**
+ * @title Modified IERC20 interface
+ * @dev This interface is used to access decimals of an ERC20 token
+ */
+interface IERC20Mod is IERC20 {
+    function decimals() external view returns (uint8);
+}
 
 library StrollHelper {
     IConstantFlowAgreementV1 public constant CFA_V1 =
@@ -21,7 +30,14 @@ library StrollHelper {
 
             if (balance <= (positiveFlowRate * _lowerLimit)) {
                 uint256 topUpAmount = positiveFlowRate * _upperLimit;
-                return (true, topUpAmount);
+                return (
+                    true,
+                    topUpAmount /
+                        10 **
+                            (18 -
+                                IERC20Mod(_superToken.getUnderlyingToken())
+                                    .decimals())
+                );
             }
         }
 

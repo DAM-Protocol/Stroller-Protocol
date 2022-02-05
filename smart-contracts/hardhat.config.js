@@ -19,7 +19,7 @@ module.exports = {
     version: "0.8.4",
     settings: {
       optimizer: {
-        enabled: true,
+        enabled: false,
         runs: 200,
       },
     },
@@ -30,11 +30,12 @@ module.exports = {
       forking: {
         url: process.env.POLYGON_NODE_URL,
         blockNumber: 23736635,
+        // url: process.env.MUMBAI_NODE_URL,
+        // blockNumber: 24603240,
         enabled: true,
       },
       blockGasLimit: 20000000,
       gasPrice: 30000000000,
-      // accounts: [{privateKey: `0x${process.env.MAINNET_PRIVATE_KEY}`, balance: parseUnits("10000", 18).toString()}],
       saveDeployments: false,
     },
     polygon: {
@@ -42,13 +43,19 @@ module.exports = {
       blockGasLimit: 20000000,
       gasPrice: 40000000000,
       accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
+      saveDeployments: true,
+    },
+    mumbai: {
+      url: process.env.MUMBAI_NODE_URL,
+      accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
+      saveDeployments: true,
     },
   },
   gasReporter: {
     enabled: true,
     currency: "USD",
     token: "MATIC",
-    gasPrice: 100, // Set to 100 GWei
+    gasPrice: 40, // Set to 40 GWei
     gasPriceApi:
       "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
     showTimeSpent: true,
@@ -63,7 +70,9 @@ module.exports = {
   },
   namedAccounts: {
     deployer: {
-      default: "0x452181dAe31Cf9f42189df71eC64298993BEe6d3",
+      default: 0,
+      137: "0x452181dAe31Cf9f42189df71eC64298993BEe6d3",
+      80001: "0x917A19E71a2811504C4f64aB33c132063B5772a5",
     },
   },
   mocha: {

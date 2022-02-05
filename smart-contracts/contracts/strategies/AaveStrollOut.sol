@@ -2,15 +2,14 @@
 pragma solidity ^0.8.4;
 
 import {ILendingPoolAddressesProvider, ILendingPool, IAToken, IProtocolDataProvider} from "../interfaces/AaveInterfaces.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrollResolver.sol";
 import "../common/StrollHelper.sol";
+import "hardhat/console.sol";
 
 contract AaveStrollOut is IStrategy {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Mod;
     using StrollHelper for ISuperToken;
 
     ILendingPoolAddressesProvider
@@ -27,24 +26,28 @@ contract AaveStrollOut is IStrategy {
         strollResolver = _strollResolver;
     }
 
-    /// @dev Check for wrong/unsupported aToken
-    function topUp(address _user, address _aToken) external override {
-        // Get underlying token address for the aToken
+    function topUp(
+        address _user,
+        address _aToken,
+        ISuperToken _superToken
+    ) external override {
+        // Get underlying token address for the `_aToken`
+        // NOTE: This line can revert a transaction if `_aToken` isn't a valid one
         address underlyingToken = IAToken(_aToken).UNDERLYING_ASSET_ADDRESS();
 
-        // Check for the supertoken of the underlying token
-        ISuperToken superToken = strollResolver.supportedSuperToken(
-            underlyingToken
+        require(
+            _superToken.getUnderlyingToken() == underlyingToken,
+            "Incorrect supertoken"
         );
 
-        (bool reqTopUp, uint256 idealWithdrawAmount) = superToken.requireTopUp(
+        (bool reqTopUp, uint256 idealWithdrawAmount) = _superToken.requireTopUp(
             _user,
             strollResolver.lowerLimit(),
             strollResolver.upperLimit()
         );
 
         // Get the allowance given by the user to this contract
-        uint256 totalWithdrawable = IERC20(_aToken).allowance(
+        uint256 totalWithdrawable = IERC20Mod(_aToken).allowance(
             _user,
             address(this)
         );
@@ -62,7 +65,11 @@ contract AaveStrollOut is IStrategy {
             : totalWithdrawable;
 
         // Transfer the aTokens from the user
-        IERC20(_aToken).safeTransferFrom(_user, address(this), withdrawAmount);
+        IERC20Mod(_aToken).safeTransferFrom(
+            _user,
+            address(this),
+            withdrawAmount
+        );
 
         // Withdraw underlying token from Aave using transferred aTokens
         ILendingPool(lendingPool).withdraw(
@@ -71,19 +78,47 @@ contract AaveStrollOut is IStrategy {
             address(this)
         );
 
-        // Upgrade the underlying tokens just withdrawn taking care of the decimals of the underlying token
+        // Giving the Supertoken max allowance for upgrades if that hasn't been done before
+        if (
+            IERC20Mod(underlyingToken).allowance(
+                address(this),
+                address(_superToken)
+            ) == 0
+        )
+            IERC20Mod(underlyingToken).safeIncreaseAllowance(
+                address(_superToken),
+                type(uint256).max
+            );
+
+        // As underlying token may have less than 18 decimals, we have to scale it up for supertoken upgrades
         // Here we are assuming an underlying token cannot have decimals greater than 18
-        superToken.upgrade(
-            withdrawAmount * (10**(18 - ERC20(underlyingToken).decimals()))
-        );
+        uint256 upgradeAmount = withdrawAmount *
+            (10**(18 - IERC20Mod(underlyingToken).decimals()));
+
+        _superToken.upgrade(upgradeAmount);
 
         // Supertoken transfer should succeed
         require(
-            superToken.transfer(_user, withdrawAmount),
+            _superToken.transfer(_user, upgradeAmount),
             "Supertoken transfer failed"
         );
 
-        emit TopUp(_user, address(superToken), withdrawAmount);
+        console.log("Withdraw amount: %s", upgradeAmount);
+
+        emit TopUp(_user, address(_superToken), upgradeAmount);
+    }
+
+    function isSupportedUnderlying(address _underlyingToken)
+        public
+        view
+        override
+        returns (bool)
+    {
+        (address aToken, , ) = PROTOCOL_DATA_PROVIDER.getReserveTokensAddresses(
+            _underlyingToken
+        );
+
+        return aToken != address(0);
     }
 
     /// @dev As aToken and it's underlying token are 1:1 correlated
