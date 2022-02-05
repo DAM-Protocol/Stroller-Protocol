@@ -42,7 +42,7 @@ const UserMenu = () => {
 				</Center>
 				<Center>
 					<Text maxW='10ch' isTruncated>
-						{user?.get('ethAddress')}
+						{user?.get('ethAddress') || '0x'}
 					</Text>
 				</Center>
 				<MenuDivider />

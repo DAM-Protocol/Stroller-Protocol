@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import {
 	Box,
 	Heading,
@@ -14,6 +14,7 @@ import {
 import StrollListItem from '../components/StrollListItem';
 import Page from '../components/layouts/Page';
 import CreateStroll from './CreateStroll';
+import { SuperFluidContext } from '../context/SuperFluidContext';
 
 const Dashboard = () => {
 	const [createStrollData, setCreateStrollData] = useState({
@@ -22,6 +23,8 @@ const Dashboard = () => {
 		duration: 0,
 	});
 	const { isOpen, onOpen, onClose } = useDisclosure();
+	const { sf } = useContext(SuperFluidContext);
+
 	return (
 		<Page>
 			<Button
