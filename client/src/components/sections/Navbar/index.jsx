@@ -36,7 +36,7 @@ const Navbar = (props) => {
 				zIndex={999}>
 				<NavLink to='/'>
 					<Text fontSize='lg' fontWeight='bold'>
-						Stroll
+						Stroller
 					</Text>
 				</NavLink>
 

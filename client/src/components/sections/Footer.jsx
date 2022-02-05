@@ -18,8 +18,8 @@ const Footer = (props) => {
 			bgColor={bgColor}
 			pos={'sticky'}
 			top={0}>
-			<NavLink to='/'>Stroll</NavLink>
-			<VStack>
+			<NavLink to='/'>Stroller</NavLink>
+			<VStack align='left' spacing={0}>
 				<NavLink to='/'>Home</NavLink>
 				<NavLink to='/dashboard'>Dashboard</NavLink>
 			</VStack>

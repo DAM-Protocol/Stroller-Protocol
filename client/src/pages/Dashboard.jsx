@@ -43,7 +43,7 @@ const Dashboard = () => {
 					Dashboard
 				</Heading>
 				<Divider my={5} />
-				<Accordion allowToggle colorScheme='blue' variant='filled'>
+				<Accordion allowToggle colorScheme='blue'>
 					<Flex
 						align='center'
 						justify='space-around'
@@ -51,15 +51,18 @@ const Dashboard = () => {
 						py={3}
 						color={useColorModeValue('gray.700', 'gray.500')}>
 						<Flex flex={1} />
-						<Flex mr={3} w={'30px'} />
-						<Text fontWeight='bold' fontSize='sm' flex={5}>
-							Token Name
+						<Flex mr={10} w={'30px'}></Flex>
+						<Text fontWeight='bold' fontSize='sm' flex={6}>
+							Super Token
 						</Text>
 						<Text fontWeight='bold' fontSize='sm' flex={8}>
-							Duration
+							Stream Rate (/s)
 						</Text>
 						<Text fontWeight='bold' fontSize='sm' flex={8}>
-							ROI
+							Total Allowance
+						</Text>
+						<Text fontWeight='bold' fontSize='sm' flex={8}>
+							Balance
 						</Text>
 					</Flex>
 					<StrollListItem />

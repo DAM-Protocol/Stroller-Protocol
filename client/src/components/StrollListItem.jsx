@@ -7,8 +7,16 @@ import {
 	Image,
 	AccordionIcon,
 	useColorModeValue,
+	Table,
+	Td,
+	Th,
+	Tr,
+	Thead,
+	Tbody,
+	Button,
 } from '@chakra-ui/react';
-import LPTokenCard from './LPTokenCard';
+
+import { BiPlus, BiMinus } from 'react-icons/bi';
 
 const StrollListItem = () => {
 	return (
@@ -27,22 +35,52 @@ const StrollListItem = () => {
 					</AccordionButton>
 				</h1>
 				<Image
-					mr={3}
+					mr={8}
 					boxSize={'30px'}
 					src='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
 					alt='dai'
 				/>
-				<Text flex={5}>Token</Text>
-				<Text flex={8}>Duration</Text>
-				<Text flex={8}>Returns</Text>
+				<Text flex={6}>USDCx</Text>
+				<Text flex={8}>1</Text>
+				<Text flex={8}>10K</Text>
+				<Text flex={8}>97</Text>
 			</Flex>
 			<AccordionPanel pb={4}>
-				{/* <Heading as='h3'>LP Tokens</Heading> */}
-				<Flex flexWrap='wrap' align='center'>
-					<LPTokenCard token='aUSDC' protocol='AAVE' appAmount={0} />
-					<LPTokenCard token='SMLP' protocol='Beefy' appAmount={10} />
-					<LPTokenCard token='aUSDT' protocol='AAVE' appAmount={5} />
-				</Flex>
+				<Table variant='unstyled' size='sm'>
+					<Thead>
+						<Tr>
+							<Th></Th>
+							<Th>Liquidity Token</Th>
+							<Th>Top Up Expiry</Th>
+							<Th>Liquidity</Th>
+							<Th>Allowance</Th>
+						</Tr>
+					</Thead>
+					<Tbody>
+						<Tr>
+							<Td>
+								<Flex align='center' justify='flex-end'>
+									<Image
+										boxSize={'30px'}
+										src='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
+										alt='dai'
+									/>
+								</Flex>
+							</Td>
+							<Td>USDC</Td>
+							<Td>2/2/22</Td>
+							<Td>10K</Td>
+							<Td>
+								<Button mr={3}>
+									<BiMinus />
+								</Button>
+								<Button colorScheme='blue'>
+									<BiPlus />
+								</Button>
+							</Td>
+						</Tr>
+					</Tbody>
+				</Table>
 			</AccordionPanel>
 		</AccordionItem>
 	);
