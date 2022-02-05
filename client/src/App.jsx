@@ -37,6 +37,10 @@ const paths = [
 		component: lazy(() => import('./pages/Landing')),
 	},
 	{
+		path: '/dashboard',
+		component: lazy(() => import('./pages/Dashboard')),
+	},
+	{
 		path: '/Super-Suite',
 		component: lazy(() => import('./pages/SuperSuite/Suite')),
 	},

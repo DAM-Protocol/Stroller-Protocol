@@ -36,16 +36,12 @@ const Navbar = (props) => {
 				zIndex={999}>
 				<NavLink to='/'>
 					<Text fontSize='lg' fontWeight='bold'>
-						dSIP
+						Stroll
 					</Text>
 				</NavLink>
 
 				<HStack display={{ base: 'none', sm: 'flex' }}>
-					<NavLink to='/'>Home</NavLink>
-					<NavLink to='/Super-Suite'>Super-Suite</NavLink>
-					<ExternalLink href='https://d-a-m-p.gitbook.io/dsip/'>
-						Docs
-					</ExternalLink>
+					<NavLink to='/dashboard'>Dashboard</NavLink>
 				</HStack>
 				<HStack>
 					<ColorModeSwitcher />
@@ -90,29 +86,14 @@ const MobileNav = ({ onToggle }) => {
 				<NavLink to='/'>dSIP</NavLink>
 
 				<NavLink
-					to='/'
+					to='/dashboard'
 					display='block'
-					textAlign='center'
 					width='100%'
+					textAlign='center'
 					onClick={onToggle}>
-					Home
+					Dashboard
 				</NavLink>
-				<NavLink
-					to='/Super-Suite'
-					display='block'
-					width='100%'
-					textAlign='center'
-					onClick={onToggle}>
-					Super-Suite
-				</NavLink>
-				<ExternalLink
-					href='https://d-a-m-p.gitbook.io/dsip/'
-					display='block'
-					width='100%'
-					textAlign='center'
-					onClick={onToggle}>
-					Docs
-				</ExternalLink>
+
 				<NavLink
 					to='/settings'
 					display='block'

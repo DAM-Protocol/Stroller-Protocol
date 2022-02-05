@@ -10,6 +10,7 @@ const APP_ID = process.env.REACT_APP_MORALIS_APPLICATION_ID;
 const SERVER_URL = process.env.REACT_APP_MORALIS_SERVER_URL;
 
 const Application = () => {
+	console.log(`Application ID: ${APP_ID}, Server URL: ${SERVER_URL}`);
 	const isServerInfo = APP_ID && SERVER_URL ? true : false;
 	if (isServerInfo)
 		return (
@@ -19,6 +20,7 @@ const Application = () => {
 				</BrowserRouter>
 			</MoralisProvider>
 		);
+	return <></>;
 };
 
 ReactDOM.render(

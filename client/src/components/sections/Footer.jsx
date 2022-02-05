@@ -18,11 +18,10 @@ const Footer = (props) => {
 			bgColor={bgColor}
 			pos={'sticky'}
 			top={0}>
-			<NavLink to='/'>dSIP</NavLink>
-			Footer
+			<NavLink to='/'>Stroll</NavLink>
 			<VStack>
 				<NavLink to='/'>Home</NavLink>
-				<NavLink to='/about'>About</NavLink>
+				<NavLink to='/dashboard'>Dashboard</NavLink>
 			</VStack>
 		</Flex>
 	);

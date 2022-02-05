@@ -5,9 +5,9 @@ const Landing = () => {
 	return (
 		<Page>
 			<Heading as='h1' size='2xl'>
-				dSIP
+				Stroll
 			</Heading>
-			<Text>Systematic Investments for Your Crypto Assets</Text>
+			<Text>X-men</Text>
 		</Page>
 	);
 };
