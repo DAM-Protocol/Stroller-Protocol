@@ -6,14 +6,21 @@ import {
 	Text,
 	Image,
 	AccordionIcon,
-	Box,
-	Button,
+	useColorModeValue,
 } from '@chakra-ui/react';
+import LPTokenCard from './LPTokenCard';
 
 const StrollListItem = () => {
 	return (
 		<AccordionItem>
-			<Flex align='center' justify='space-around'>
+			<Flex
+				align='center'
+				justify='space-around'
+				bg={useColorModeValue('gray.100', 'gray.700')}
+				px={5}
+				py={3}
+				my={2}
+				borderRadius='lg'>
 				<h1 flex={1}>
 					<AccordionButton>
 						<AccordionIcon />
@@ -30,16 +37,11 @@ const StrollListItem = () => {
 				<Text flex={8}>Returns</Text>
 			</Flex>
 			<AccordionPanel pb={4}>
-				<Text>LP Tokens</Text>
-				<Flex>
-					<Box>
-						<Image />
-						<Text>Token name</Text>
-						<Text>Lending Protocol</Text>
-						<Text>Approve Amount</Text>
-						<Button>Revoke</Button>
-						<Button>Approve More</Button>
-					</Box>
+				{/* <Heading as='h3'>LP Tokens</Heading> */}
+				<Flex flexWrap='wrap' align='center'>
+					<LPTokenCard token='aUSDC' protocol='AAVE' appAmount={0} />
+					<LPTokenCard token='SMLP' protocol='Beefy' appAmount={10} />
+					<LPTokenCard token='aUSDT' protocol='AAVE' appAmount={5} />
 				</Flex>
 			</AccordionPanel>
 		</AccordionItem>
