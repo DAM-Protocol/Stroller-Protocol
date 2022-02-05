@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
 	Heading,
 	Divider,
@@ -22,8 +21,8 @@ import {
 	Slider,
 } from '@chakra-ui/react';
 
-const CreateStroll = ({ isOpen, onClose }) => {
-	const [sliderValue, setSliderValue] = useState(0);
+const CreateStroll = ({ isOpen, onClose, data, setData }) => {
+	const { nickname, token, duration } = data;
 	return (
 		<Modal
 			isOpen={isOpen}
@@ -40,10 +39,20 @@ const CreateStroll = ({ isOpen, onClose }) => {
 				<ModalBody>
 					<Flex align={'center'} justify={'center'}>
 						<FormControl width='90%'>
-							<FormLabel htmlFor='name'>NickName</FormLabel>
-							<Input type='text' placeholder="Doobie's Stroll" mb={5} />
+							<FormLabel htmlFor='name'>Nickname</FormLabel>
+							<Input
+								type='text'
+								value={nickname}
+								onChange={(e) => setData({ ...data, nickname: e.target.value })}
+								placeholder="Doobie's Stroll"
+								mb={5}
+							/>
 							<FormLabel htmlFor='token'>Token</FormLabel>
-							<Select placeholder='Select a token' mb={5}>
+							<Select
+								value={token}
+								onChange={(e) => setData({ ...data, token: e.target.value })}
+								placeholder='Select a token'
+								mb={5}>
 								<option value='USDC'>USDC</option>
 								<option value='USDT'>USDT</option>
 								<option value='DAI'>DAI</option>
@@ -51,8 +60,8 @@ const CreateStroll = ({ isOpen, onClose }) => {
 							<FormLabel htmlFor='duration'>Duration</FormLabel>
 							<Slider
 								aria-label='duration select'
-								value={sliderValue}
-								onChange={(val) => setSliderValue(val)}
+								value={duration}
+								onChange={(val) => setData({ ...data, duration: val })}
 								my={8}>
 								<SliderMark value={25} mt='1' ml='-2.5' fontSize='sm'>
 									25%
@@ -64,14 +73,14 @@ const CreateStroll = ({ isOpen, onClose }) => {
 									75%
 								</SliderMark>
 								<SliderMark
-									value={sliderValue}
+									value={duration}
 									textAlign='center'
 									bg='blue.500'
 									color='white'
 									mt='-10'
 									ml='-5'
 									w='12'>
-									{sliderValue}%
+									{duration}%
 								</SliderMark>
 								<SliderTrack>
 									<SliderFilledTrack />
@@ -82,10 +91,17 @@ const CreateStroll = ({ isOpen, onClose }) => {
 					</Flex>
 				</ModalBody>
 				<ModalFooter width={'100%'}>
-					<Button colorScheme='blue' mr={3} onClick={onClose}>
+					<Button variant='ghost' mr={3} onClick={onClose}>
 						Close
 					</Button>
-					<Button variant='ghost'>Create the Stroll</Button>
+					<Button
+						onClick={() => {
+							console.log(data);
+							onClose();
+						}}
+						colorScheme='blue'>
+						Create the Stroll
+					</Button>
 				</ModalFooter>
 			</ModalContent>
 		</Modal>
