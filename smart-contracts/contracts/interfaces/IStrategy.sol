@@ -8,13 +8,5 @@ interface IStrategy {
 
     function topUp(address _user, address _lpToken, ISuperToken _superToken) external;
 
-    // function addSupportedUnderlying(address _underlyingToken) external;
-
-    function checkValue(
-        address _user,
-        address _lpToken,
-        uint256 _amount
-    ) external view returns (uint256);
-
     function isSupportedUnderlying(address _underlyingToken) external view returns(bool);
 }

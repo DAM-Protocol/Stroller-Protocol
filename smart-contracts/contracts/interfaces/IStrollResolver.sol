@@ -6,10 +6,17 @@ import {ISuperToken} from "@superfluid-finance/ethereum-contracts/contracts/inte
 interface IStrollResolver {
     event AddSuperToken(address _underlyingToken, address _superToken);
     event AddSupportedUnderlyingToken(address _lpToken, address _underlyingToken);
-    
+    event ChangedSupplyAssetLimit(uint32 _newSupplyLimit);
+    event ChangedUpperLimit(uint128 _newUpperLimit);
+    event ChangedLowerLimit(uint128 _newLowerLimit);
+
     function addSupportedSuperToken(ISuperToken _superToken) external;
 
-    // function addSupportedUnderlyingToken(address _lpToken, address _underlyingToken) external;
+    function changeSupplyAssetLimit(uint32 _newSupplyLimit) external;
+
+    function changeUpperLimit(uint128 _newUpperLimit) external;
+
+    function changeLowerLimit(uint128 _newLowerLimit) external;
 
     function supplyAssetLimit() external view returns (uint32);
 
@@ -22,8 +29,4 @@ interface IStrollResolver {
         view
         returns (ISuperToken);
 
-    // function isSupportedUnderlyingToken(
-    //     address _lpToken,
-    //     address _underlyingToken
-    // ) external view returns (bool);
 }

@@ -5,7 +5,6 @@ require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
-require("hardhat-tracer");
 require("hardhat-deploy");
 
 // You need to export an object to set up your config
@@ -31,7 +30,7 @@ module.exports = {
         url: process.env.POLYGON_NODE_URL,
         blockNumber: 23736635,
         // url: process.env.MUMBAI_NODE_URL,
-        // blockNumber: 24603240,
+        // blockNumber: 24645049,
         enabled: true,
       },
       blockGasLimit: 20000000,

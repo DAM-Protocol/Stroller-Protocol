@@ -14,8 +14,13 @@ interface IERC20Mod is IERC20 {
 }
 
 library StrollHelper {
+    // For mainnet deployment
+    // IConstantFlowAgreementV1 public constant CFA_V1 =
+    //     IConstantFlowAgreementV1(0x6EeE6060f715257b970700bc2656De21dEdF074C);
+
+    // For testnet deployment
     IConstantFlowAgreementV1 public constant CFA_V1 =
-        IConstantFlowAgreementV1(0x6EeE6060f715257b970700bc2656De21dEdF074C);
+        IConstantFlowAgreementV1(0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873);
 
     function requireTopUp(
         ISuperToken _superToken,
