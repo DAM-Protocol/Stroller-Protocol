@@ -57,7 +57,6 @@ const SuperFluidProvider = ({ children }) => {
 				const tempTokenList = [];
 
 				Object.values(defaultSuperTokenData.tokens).forEach((token) => {
-					console.log(token);
 					tempTokenList.push({
 						...token,
 						tk: {
