@@ -17,11 +17,6 @@ contract StrollResolver is Ownable, IStrollResolver {
     /// @notice Map of underlying tokens and their super tokens
     mapping(address => ISuperToken) public override supportedSuperToken;
 
-    /// @notice Maps LP tokens with supported underlying tokens
-    // mapping(address => mapping(address => bool))
-    //     public
-    //     override isSupportedUnderlyingToken;
-
     constructor(
         uint32 _supplyAssetLimit,
         uint128 _upperLimit,
@@ -47,21 +42,32 @@ contract StrollResolver is Ownable, IStrollResolver {
         emit AddSuperToken(underlyingToken, address(_superToken));
     }
 
-    // function addSupportedUnderlyingToken(address _lpToken, _underlyingToken)
-    //     external
-    //     override
-    // {
-    //     _onlyOwner(msg.sender);
-    //     require(
-    //         !isSupportedUnderlyingToken[_lpToken][_underlyingToken],
-    //         "Underlying already supported"
-    //     );
-    //     require(_lpToken != address(0) && _underlyingToken != address(0), "Null addresses");
+    function changeSupplyAssetLimit(uint32 _newSupplyLimit) external override {
+        _onlyOwner(msg.sender);
+        require(supplyAssetLimit > 0, "Invalid supply assets limit");
 
-    //     isSupportedUnderlyingToken[_lpToken][_underlyingToken] = true;
+        supplyAssetLimit = _newSupplyLimit;
 
-    //     emit AddSupportedUnderlyingToken(_lpToken, _underlyingToken);
-    // }
+        emit ChangedSupplyAssetLimit(_newSupplyLimit);
+    }
+
+    function changeUpperLimit(uint128 _newUpperLimit) external override {
+        _onlyOwner(msg.sender);
+        require(_newUpperLimit > lowerLimit, "Invalid upper limit");
+
+        upperLimit = _newUpperLimit;
+
+        emit ChangedUpperLimit(_newUpperLimit);
+    }
+
+    function changeLowerLimit(uint128 _newLowerLimit) external override {
+        _onlyOwner(msg.sender);
+        require(_newLowerLimit < upperLimit, "Invalid lower limit");
+
+        lowerLimit = _newLowerLimit;
+
+        emit ChangedLowerLimit(_newLowerLimit);
+    }
 
     function _onlyOwner(address _caller) internal view {
         require(_caller == owner(), "Not owner");

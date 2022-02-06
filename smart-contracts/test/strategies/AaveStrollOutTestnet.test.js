@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable node/no-extraneous-require */
 /* eslint-disable no-undef */
 const { expect } = require("chai");
 const { ethers, waffle } = require("hardhat");
@@ -12,51 +14,77 @@ const {
 } = require("../../helpers/helpers");
 const { constants } = require("ethers");
 
-describe("Aave Stroll Out Testing", function () {
+describe("Aave Stroll Out Testing (Testnet Deployment)", function () {
   const DAI = {
-    token: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-    superToken: "0x1305f6b6df9dc47159d12eb7ac2804d4a33173c2",
-    aToken: "0x27F8D03b3a2196956ED754baDc28D73be8830A6e",
+    symbol: "DAI",
+    token: "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+    aToken: "0x639cB7b21ee2161DF9c882483C9D55c90c20Ca3e",
+    superToken: "0x06577b0B09e69148A45b866a0dE6643b6caC40Af",
     decimals: 18,
   };
+
   const USDC = {
-    token: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-    superToken: "0xcaa7349cea390f89641fe306d93591f87595dc1f",
-    aToken: "0x1a13F4Ca1d028320A707D99520AbFefca3998b7F",
+    symbol: "USDC",
+    token: "0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e",
+    aToken: "0x2271e3Fef9e15046d09E1d78a8FF038c691E9Cf9",
+    superToken: "0x86beec8a6e0e0ded142998ed8ddcbce118f91864",
     decimals: 6,
   };
 
-  const USDCWhaleAddr = "0x947d711c25220d8301c087b25ba111fe8cbf6672";
-  const DAIWhaleAddr = "0x85fcd7dd0a1e1a9fcd5fd886ed522de8221c3ee5";
-  const amDAIWhaleAddr = "0xad0135af20fa82e106607257143d0060a7eb5cbf";
-  const amUSDCWhaleAddr = "0x2b67a3c0b90f6ae4394210692f69968d02970126";
+  const USDT = {
+    symbol: "USDT",
+    token: "0xBD21A10F619BE90d6066c941b04e340841F1F989",
+    aToken: "0xF8744C0bD8C7adeA522d6DDE2298b17284A79D1b",
+    superToken: "0x3a27ff22eef2db03e91613ca4ba37e21ee21458a",
+    decimals: 6,
+  };
+
+  const AAVE = {
+    symbol: "AAVE",
+    token: "0x341d1f30e77D3FBfbD43D17183E2acb9dF25574E",
+    aToken: "0x7ec62b6fC19174255335C8f4346E0C2fcf870a6B",
+    superToken: "0x98d12ca6c1ef4b99ce48cb616a3ac25806826cc8",
+    decimals: 18,
+  };
+
+  const WETH = {
+    symbol: "WETH",
+    token: "0x3C68CE8504087f89c640D02d133646d98e64ddd9",
+    aToken: "0x7aE20397Ca327721F013BB9e140C707F82871b56",
+    superToken: "0xe2cd1c038bd473c02b01fb355b58e0a6d7183dde",
+    decimals: 18,
+  };
+
+  const WBTC = {
+    symbol: "WBTC",
+    token: "0x0d787a4a1548f673ed375445535a6c7A1EE56180",
+    aToken: "0xc9276ECa6798A14f64eC33a526b547DAd50bDa2F",
+    superToken: "0x0173d76385b5948560e4012ca63ff79de9f2da9e",
+    decimals: 8,
+  };
+
+  // Test account containing all the aTokens and supertokens
+  const whaleAddr = "0x917A19E71a2811504C4f64aB33c132063B5772a5";
 
   const [admin, dummy] = provider.getWallets();
   const ethersProvider = provider;
 
   let sf;
-  let USDCWhale, DAIWhale, amDAIWhale, amUSDCWhale;
-  let DAIContract, USDCContract, amDAIContract, amUSDCContract;
+  let whale;
+  let amDAIContract, amUSDCContract;
   let USDCx, DAIx;
   let app, appFactory, strollResolver;
 
   before(async () => {
-    [USDCWhale, DAIWhale, amDAIWhale, amUSDCWhale] = await impersonateAccounts([
-      USDCWhaleAddr,
-      DAIWhaleAddr,
-      amDAIWhaleAddr,
-      amUSDCWhaleAddr,
-    ]);
+    [whale] = await impersonateAccounts([whaleAddr]);
 
-    DAIContract = await ethers.getContractAt("IERC20", DAI.token);
-    USDCContract = await ethers.getContractAt("IERC20", USDC.token);
     amDAIContract = await ethers.getContractAt("IERC20", DAI.aToken);
     amUSDCContract = await ethers.getContractAt("IERC20", USDC.aToken);
 
     sf = await SuperfluidSDK.Framework.create({
       networkName: "hardhat",
       dataMode: "WEB3_ONLY",
-      resolverAddress: "0xE0cc76334405EE8b39213E620587d815967af39C", // Polygon mainnet resolver
+      resolverAddress: "0x8C54C83FbDe3C59e59dd6E324531FB93d4F504d3", // Mumbai testnet resolver
       protocolReleaseVersion: "v1",
       provider: ethersProvider,
     });
@@ -99,49 +127,16 @@ describe("Aave Stroll Out Testing", function () {
   async function setupEnv() {
     app = await appFactory.deploy(strollResolver.address);
     await app.deployed();
-    await approveAndFund();
-  }
-
-  async function approveAndFund() {
-    await USDCContract.connect(USDCWhale).approve(
-      USDC.superToken,
-      parseUnits("1000000", 6)
-    );
-    await DAIContract.connect(DAIWhale).approve(
-      DAI.superToken,
-      parseUnits("1000000", 18)
-    );
-
-    await USDCx.upgrade({ amount: parseUnits("1000", 18) }).exec(USDCWhale);
-    await DAIx.upgrade({ amount: parseUnits("1000", 18) }).exec(DAIWhale);
-
-    // await USDCx.transfer({
-    //   receiver: admin.address,
-    //   amount: parseUnits("1000", 18),
-    // }).exec(USDCWhale);
-
-    // await DAIx.transfer({
-    //   receiver: admin.address,
-    //   amount: parseUnits("1000", 18),
-    // }).exec(DAIWhale);
-
-    await amDAIContract
-      .connect(amDAIWhale)
-      .transfer(DAIWhaleAddr, parseUnits("1000", 18));
-
-    await amUSDCContract
-      .connect(amUSDCWhale)
-      .transfer(USDCWhaleAddr, parseUnits("1000", 6));
   }
 
   it("should top up an account consuming all allowance", async () => {
     await loadFixture(setupEnv);
 
     await amDAIContract
-      .connect(DAIWhale)
+      .connect(whale)
       .approve(app.address, parseUnits("100", 18));
     await amUSDCContract
-      .connect(USDCWhale)
+      .connect(whale)
       .approve(app.address, parseUnits("100", 6));
 
     userFlowRate = parseUnits("1000", 18).div(getBigNumber(getSeconds(30)));
@@ -152,7 +147,7 @@ describe("Aave Stroll Out Testing", function () {
         receiver: dummy.address,
         flowRate: userFlowRate,
       })
-      .exec(USDCWhale);
+      .exec(whale);
 
     await sf.cfaV1
       .createFlow({
@@ -160,46 +155,46 @@ describe("Aave Stroll Out Testing", function () {
         receiver: dummy.address,
         flowRate: userFlowRate,
       })
-      .exec(DAIWhale);
+      .exec(whale);
 
     await increaseTime(getSeconds(29));
 
-    balanceBeforeUSDC = await USDCx.balanceOf({
-      account: USDCWhaleAddr,
+    balanceBeforeUSDCx = await USDCx.balanceOf({
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
-    balanceBeforeDAI = await DAIx.balanceOf({
-      account: DAIWhaleAddr,
+    balanceBeforeDAIx = await DAIx.balanceOf({
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
-    await app.topUp(USDCWhaleAddr, USDC.aToken, USDC.superToken);
-    await app.topUp(DAIWhaleAddr, DAI.aToken, DAI.superToken);
+    await app.topUp(whaleAddr, USDC.aToken, USDC.superToken);
+    await app.topUp(whaleAddr, DAI.aToken, DAI.superToken);
 
-    balanceAfterUSDC = await USDCx.balanceOf({
-      account: USDCWhaleAddr,
+    balanceAfterUSDCx = await USDCx.balanceOf({
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
-    balanceAfterDAI = await DAIx.balanceOf({
-      account: DAIWhaleAddr,
+    balanceAfterDAIx = await DAIx.balanceOf({
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
     expect(
-      getBigNumber(balanceAfterUSDC).sub(getBigNumber(balanceBeforeUSDC))
+      getBigNumber(balanceAfterUSDCx).sub(getBigNumber(balanceBeforeUSDCx))
     ).to.be.closeTo(parseUnits("100", 18), parseUnits("1", 18));
 
     expect(
-      getBigNumber(balanceAfterDAI).sub(getBigNumber(balanceBeforeDAI))
+      getBigNumber(balanceAfterDAIx).sub(getBigNumber(balanceBeforeDAIx))
     ).to.be.closeTo(parseUnits("100", 18), parseUnits("1", 18));
 
-    expect(await amUSDCContract.allowance(USDCWhaleAddr, app.address)).to.equal(
+    expect(await amUSDCContract.allowance(whaleAddr, app.address)).to.equal(
       constants.Zero
     );
 
-    expect(await amDAIContract.allowance(DAIWhaleAddr, app.address)).to.equal(
+    expect(await amDAIContract.allowance(whaleAddr, app.address)).to.equal(
       constants.Zero
     );
   });
@@ -210,10 +205,10 @@ describe("Aave Stroll Out Testing", function () {
     userFlowRate = parseUnits("1000", 18).div(getBigNumber(getSeconds(30)));
 
     await amDAIContract
-      .connect(DAIWhale)
+      .connect(whale)
       .approve(app.address, parseUnits("200", 18));
     await amUSDCContract
-      .connect(USDCWhale)
+      .connect(whale)
       .approve(app.address, parseUnits("200", 6));
 
     await sf.cfaV1
@@ -222,7 +217,7 @@ describe("Aave Stroll Out Testing", function () {
         receiver: dummy.address,
         flowRate: userFlowRate,
       })
-      .exec(USDCWhale);
+      .exec(whale);
 
     await sf.cfaV1
       .createFlow({
@@ -230,44 +225,37 @@ describe("Aave Stroll Out Testing", function () {
         receiver: dummy.address,
         flowRate: userFlowRate,
       })
-      .exec(DAIWhale);
+      .exec(whale);
 
     await increaseTime(getSeconds(29));
 
     balanceBeforeUSDCx = await USDCx.balanceOf({
-      account: USDCWhaleAddr,
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
     balanceBeforeDAIx = await DAIx.balanceOf({
-      account: DAIWhaleAddr,
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
-    await app.topUp(USDCWhaleAddr, USDC.aToken, USDC.superToken);
-    await app.topUp(DAIWhaleAddr, DAI.aToken, DAI.superToken);
+    await app.topUp(whaleAddr, USDC.aToken, USDC.superToken);
+    await app.topUp(whaleAddr, DAI.aToken, DAI.superToken);
 
     balanceAfterUSDCx = await USDCx.balanceOf({
-      account: USDCWhaleAddr,
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
     balanceAfterDAIx = await DAIx.balanceOf({
-      account: DAIWhaleAddr,
+      account: whaleAddr,
       providerOrSigner: ethersProvider,
     });
 
     // (Amount per month / 30) * Upper limit
     expectedDiff = parseUnits(((1000 / 30) * 5).toString(), "18");
-
-    console.log("Expected diff: ", expectedDiff.toString());
-    console.log("Balance before USDCx: ", balanceBeforeUSDCx);
-    console.log("Balance after USDCx: ", balanceAfterUSDCx);
-
-    // expectedDiffUSDCx = getBigNumber(balanceBeforeUSDCx).add(expectedDiff);
-    // expectedDiffDAIx = getBigNumber(balanceBeforeDAIx).add(expectedDiff);
-
-    // console.log("Expected diff USDCx: ", expectedDiffUSDCx);
+    expectedDiffUSDC = parseInt((1000 / 30) * 5 * Math.pow(10, 6));
+    expectedDiffDAI = expectedDiff;
 
     expect(
       getBigNumber(balanceAfterUSDCx).sub(getBigNumber(balanceBeforeUSDCx))
@@ -277,12 +265,16 @@ describe("Aave Stroll Out Testing", function () {
       getBigNumber(balanceAfterDAIx).sub(getBigNumber(balanceBeforeDAIx))
     ).to.be.closeTo(expectedDiff, parseUnits("1", 18));
 
-    expect(await amUSDCContract.allowance(USDCWhaleAddr, app.address)).to.equal(
-      parseUnits("200", 18).sub(expectedDiff)
+    expect(
+      await amUSDCContract.allowance(whaleAddr, app.address)
+    ).to.be.closeTo(
+      parseUnits("200", 6).sub(getBigNumber(expectedDiffUSDC)),
+      parseUnits("1", 6)
     );
 
-    expect(await amDAIContract.allowance(DAIWhaleAddr, app.address)).to.equal(
-      parseUnits("200", 18).sub(expectedDiff)
+    expect(await amDAIContract.allowance(whaleAddr, app.address)).to.be.closeTo(
+      parseUnits("200", 18).sub(expectedDiffDAI),
+      parseUnits("1", 18)
     );
   });
 });

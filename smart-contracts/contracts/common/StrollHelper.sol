@@ -14,8 +14,13 @@ interface IERC20Mod is IERC20 {
 }
 
 library StrollHelper {
+    // For mainnet deployment
+    // IConstantFlowAgreementV1 public constant CFA_V1 =
+    //     IConstantFlowAgreementV1(0x6EeE6060f715257b970700bc2656De21dEdF074C);
+
+    // For testnet deployment
     IConstantFlowAgreementV1 public constant CFA_V1 =
-        IConstantFlowAgreementV1(0x6EeE6060f715257b970700bc2656De21dEdF074C);
+        IConstantFlowAgreementV1(0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873);
 
     function requireTopUp(
         ISuperToken _superToken,
@@ -42,5 +47,22 @@ library StrollHelper {
         }
 
         return (false, 0);
+    }
+
+    function checkTopUp(
+        ISuperToken _superToken,
+        address _user,
+        uint128 _lowerLimit
+    ) external view returns (bool) {
+        int96 flowRate = CFA_V1.getNetFlow(_superToken, _user);
+
+        if (flowRate < 0) {
+            uint256 balance = _superToken.balanceOf(_user);
+            uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
+
+            if (balance <= (positiveFlowRate * _lowerLimit)) return true;
+        }
+
+        return false;
     }
 }

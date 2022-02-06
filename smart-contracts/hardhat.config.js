@@ -5,7 +5,6 @@ require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
-require("hardhat-tracer");
 require("hardhat-deploy");
 
 // You need to export an object to set up your config
