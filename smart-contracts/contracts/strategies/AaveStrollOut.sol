@@ -2,24 +2,33 @@
 pragma solidity ^0.8.4;
 
 import {ILendingPoolAddressesProvider, ILendingPool, IAToken, IProtocolDataProvider} from "../interfaces/AaveInterfaces.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrollResolver.sol";
 import "../common/StrollHelper.sol";
+import "hardhat/console.sol";
 
 contract AaveStrollOut is IStrategy {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Mod;
     using StrollHelper for ISuperToken;
 
+    // For Polygon mainnet
+    // ILendingPoolAddressesProvider
+    //     private constant LENDINGPOOL_ADDRESSES_PROVIDER =
+    //     ILendingPoolAddressesProvider(
+    //         0xd05e3E715d945B59290df0ae8eF85c1BdB684744
+    //     );
+    // IProtocolDataProvider private constant PROTOCOL_DATA_PROVIDER =
+    //     IProtocolDataProvider(0x7551b5D2763519d4e37e8B81929D336De671d46d);
+
+    // For Mumbai testnet
     ILendingPoolAddressesProvider
         private constant LENDINGPOOL_ADDRESSES_PROVIDER =
         ILendingPoolAddressesProvider(
-            0xd05e3E715d945B59290df0ae8eF85c1BdB684744
+            0x178113104fEcbcD7fF8669a0150721e231F0FD4B
         );
     IProtocolDataProvider private constant PROTOCOL_DATA_PROVIDER =
-        IProtocolDataProvider(0x7551b5D2763519d4e37e8B81929D336De671d46d);
+        IProtocolDataProvider(0xFA3bD19110d986c5e5E9DD5F69362d05035D045B);
 
     IStrollResolver private immutable strollResolver;
 
@@ -27,31 +36,37 @@ contract AaveStrollOut is IStrategy {
         strollResolver = _strollResolver;
     }
 
-    /// @dev Check for wrong/unsupported aToken
-    function topUp(address _user, address _aToken) external override {
-        // Get underlying token address for the aToken
+    function topUp(
+        address _user,
+        address _aToken,
+        ISuperToken _superToken
+    ) external override {
+        require(msg.sender == strollResolver.strollRegistry(), "Not registry");
+
+        // Get underlying token address for the `_aToken`
+        // NOTE: This line can revert a transaction if `_aToken` isn't a valid one
         address underlyingToken = IAToken(_aToken).UNDERLYING_ASSET_ADDRESS();
 
-        // Check for the supertoken of the underlying token
-        ISuperToken superToken = strollResolver.supportedSuperToken(
-            underlyingToken
+        require(
+            _superToken.getUnderlyingToken() == underlyingToken,
+            "Incorrect supertoken"
         );
 
-        (bool reqTopUp, uint256 idealWithdrawAmount) = superToken.requireTopUp(
+        (bool reqTopUp, uint256 idealWithdrawAmount) = _superToken.requireTopUp(
             _user,
             strollResolver.lowerLimit(),
             strollResolver.upperLimit()
         );
 
         // Get the allowance given by the user to this contract
-        uint256 totalWithdrawable = IERC20(_aToken).allowance(
+        uint256 totalWithdrawable = IERC20Mod(_aToken).allowance(
             _user,
             address(this)
         );
 
         // Topup is necessary only if liquidity will last for less than lowerLimit
-        require(reqTopUp, "TopUp not required");
-        require(totalWithdrawable > 0, "Not enough allowance");
+        // require(reqTopUp, "TopUp not required");
+        // require(totalWithdrawable > 0, "Not enough allowance");
 
         address lendingPool = LENDINGPOOL_ADDRESSES_PROVIDER.getLendingPool();
 
@@ -62,7 +77,11 @@ contract AaveStrollOut is IStrategy {
             : totalWithdrawable;
 
         // Transfer the aTokens from the user
-        IERC20(_aToken).safeTransferFrom(_user, address(this), withdrawAmount);
+        IERC20Mod(_aToken).safeTransferFrom(
+            _user,
+            address(this),
+            withdrawAmount
+        );
 
         // Withdraw underlying token from Aave using transferred aTokens
         ILendingPool(lendingPool).withdraw(
@@ -71,28 +90,56 @@ contract AaveStrollOut is IStrategy {
             address(this)
         );
 
-        // Upgrade the underlying tokens just withdrawn taking care of the decimals of the underlying token
+        // Giving the Supertoken max allowance for upgrades if that hasn't been done before
+        if (
+            IERC20Mod(underlyingToken).allowance(
+                address(this),
+                address(_superToken)
+            ) == 0
+        )
+            IERC20Mod(underlyingToken).safeIncreaseAllowance(
+                address(_superToken),
+                type(uint256).max
+            );
+
+        // As underlying token may have less than 18 decimals, we have to scale it up for supertoken upgrades
         // Here we are assuming an underlying token cannot have decimals greater than 18
-        superToken.upgrade(
-            withdrawAmount * (10**(18 - ERC20(underlyingToken).decimals()))
-        );
+        uint256 upgradeAmount = withdrawAmount *
+            (10**(18 - IERC20Mod(underlyingToken).decimals()));
+
+        _superToken.upgrade(upgradeAmount);
 
         // Supertoken transfer should succeed
         require(
-            superToken.transfer(_user, withdrawAmount),
+            _superToken.transfer(_user, upgradeAmount),
             "Supertoken transfer failed"
         );
 
-        emit TopUp(_user, address(superToken), withdrawAmount);
+        console.log("Withdraw amount: %s", upgradeAmount);
+
+        emit TopUp(_user, address(_superToken), upgradeAmount);
     }
 
-    /// @dev As aToken and it's underlying token are 1:1 correlated
-    /// just return the amount of aToken as value of the same
-    function checkValue(
-        address, // _user
-        address, // _aToken
-        uint256 _amount
-    ) public pure override returns (uint256) {
-        return _amount;
+    function isSupportedUnderlying(address _underlyingToken)
+        public
+        view
+        override
+        returns (bool)
+    {
+        (address aToken, , ) = PROTOCOL_DATA_PROVIDER.getReserveTokensAddresses(
+            _underlyingToken
+        );
+
+        return aToken != address(0);
     }
+
+    // /// @dev As aToken and it's underlying token are 1:1 correlated
+    // /// just return the amount of aToken as value of the same
+    // function checkValue(
+    //     address, // _user
+    //     address, // _aToken
+    //     uint256 _amount
+    // ) public pure returns (uint256) {
+    //     return _amount;
+    // }
 }
