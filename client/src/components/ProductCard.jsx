@@ -17,7 +17,7 @@ const ProductCard = ({ title, description, imageURL, chain, disabled }) => {
 		<Center py={6} minW={'340px'}>
 			<Box
 				border={'1px solid'}
-				borderColor={useColorModeValue('gray.100', 'blue.800')}
+				borderColor={useColorModeValue('gray.100', '.800')}
 				role={'group'}
 				p={6}
 				maxW={'330px'}
@@ -46,10 +46,10 @@ const ProductCard = ({ title, description, imageURL, chain, disabled }) => {
 						rounded={'full'}
 						px={10}
 						py={2.5}
-						bg={disabled ? 'blue.200' : 'blue.400'}
+						bg={disabled ? 'green.200' : 'green.400'}
 						color={'white'}
 						_hover={{
-							bg: disabled ? 'blue.200' : 'blue.500',
+							bg: disabled ? 'green.200' : 'green.500',
 						}}
 						cursor={disabled ? 'not-allowed' : 'pointer'}
 						to={disabled ? '#' : `/${title}`}
@@ -93,7 +93,7 @@ const ProductImage = ({ imageURL }) => {
 				objectFit={'cover'}
 				src={imageURL}
 				border={useColorModeValue('', '1px solid')}
-				borderColor={'blue.800'}
+				borderColor={'green.800'}
 			/>
 		</Box>
 	);

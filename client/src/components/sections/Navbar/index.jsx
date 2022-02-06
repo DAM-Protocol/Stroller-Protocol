@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
 	Flex,
 	useColorModeValue,
@@ -6,6 +7,7 @@ import {
 	IconButton,
 	VStack,
 	Text,
+	Button,
 } from '@chakra-ui/react';
 import { ColorModeSwitcher } from '../../ColorModeSwitcher';
 import UserMenu from './UserMenu';
@@ -13,10 +15,13 @@ import { ExternalLink, NavLink } from './Links';
 import { VscClose } from 'react-icons/vsc';
 import { RiMenu5Fill } from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useChain } from 'react-moralis';
 
 const Navbar = (props) => {
+	const { switchNetwork, chainId, chain } = useChain();
 	const bgColor = useColorModeValue('whiteAlpha.800', 'blackAlpha.700');
 	const { isOpen, onToggle } = useDisclosure();
+
 	return (
 		<>
 			<Flex
@@ -45,6 +50,13 @@ const Navbar = (props) => {
 				</HStack>
 				<HStack>
 					<ColorModeSwitcher />
+					<Button
+						size='md'
+						variant='outline'
+						colorScheme={chain?.chainId === '0x13881' ? 'green' : 'red'}
+						onClick={() => switchNetwork('0x13881')}>
+						{chain?.chainId === '0x13881' ? 'Mumbai Testnet' : 'Wrong Network'}
+					</Button>
 					<UserMenu />
 					<IconButton
 						onClick={onToggle}
@@ -68,7 +80,7 @@ const MobileNav = ({ onToggle }) => {
 		<>
 			<MotionVStack
 				display={{ base: 'flex', sm: 'none' }}
-				bg={useColorModeValue('blue.50', 'gray.900')}
+				bg={useColorModeValue('green.50', 'gray.900')}
 				p={4}
 				justify='center'
 				sx={{

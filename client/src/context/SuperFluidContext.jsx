@@ -16,20 +16,20 @@ const SuperFluidProvider = ({ children }) => {
 
 	const [sf, setSf] = useState(null);
 
-	useEffect(() => {
-		(async () => {
-			if (!isWeb3Enabled) return null;
+	// useEffect(() => {
+	// 	(async () => {
+	// 		if (!isWeb3Enabled) return null;
 
-			const mmProvider = new ethers.providers.Web3Provider(window.ethereum);
+	// 		const mmProvider = new ethers.providers.Web3Provider(window.ethereum);
 
-			const _sf = await Framework.create({
-				networkName: 'matic',
-				provider: mmProvider,
-			});
-			window.sf = _sf;
-			setSf(_sf);
-		})();
-	}, [isWeb3Enabled, web3]);
+	// 		const _sf = await Framework.create({
+	// 			networkName: 'matic',
+	// 			provider: mmProvider,
+	// 		});
+	// 		window.sf = _sf;
+	// 		setSf(_sf);
+	// 	})();
+	// }, [isWeb3Enabled, web3]);
 
 	const { tokensLookup, tokenAddresses } = useDefaultERC20Tokens();
 	const [defaultTokenList, setDefaultTokenList] = useState([]);

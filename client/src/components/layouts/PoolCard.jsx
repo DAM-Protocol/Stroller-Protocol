@@ -25,7 +25,7 @@ const PoolCard = ({ imageURL, children, name }) => {
 		<Center py={6} minW={'200px'}>
 			<Box
 				border={'1px solid'}
-				borderColor={useColorModeValue('gray.100', 'blue.800')}
+				borderColor={useColorModeValue('gray.100', 'green.800')}
 				role={'group'}
 				p={6}
 				maxW={'360px'}
@@ -83,7 +83,7 @@ const PoolCard = ({ imageURL, children, name }) => {
 					</Table>
 					<HStack width={'100%'} justifyContent='space-evenly'>
 						<Button
-							colorScheme='blue'
+							colorScheme='green'
 							onClick={() => navigate(`/Super-dHEDGE/?pool=df`)}>
 							Stream
 						</Button>
