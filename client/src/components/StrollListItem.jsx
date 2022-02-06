@@ -8,9 +8,7 @@ import {
 	useColorModeValue,
 	Table,
 	Td,
-	Th,
 	Tr,
-	Thead,
 	Tbody,
 	Button,
 	Badge,
@@ -20,6 +18,7 @@ import { BiPlus, BiMinus } from 'react-icons/bi';
 import { useContext, useState, useEffect } from 'react';
 import { useMoralis } from 'react-moralis';
 import { SuperFluidContext } from '../context/SuperFluidContext';
+import TableHeader from './Headers/TableHeader';
 
 const StrollListItem = ({ totalAllowance = 0 }) => {
 	const { sf } = useContext(SuperFluidContext);
@@ -44,7 +43,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 	}, [sf, user, web3]);
 
 	return (
-		<AccordionItem my={4}>
+		<AccordionItem>
 			<AccordionButton>
 				<Flex
 					align='center'
@@ -52,6 +51,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 					bg={useColorModeValue('gray.100', 'gray.700')}
 					px={5}
 					py={3}
+					my={2}
 					borderRadius='lg'
 					w='100%'>
 					<AccordionIcon flex={2} />
@@ -71,15 +71,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 				borderRadius='lg'
 				bg={useColorModeValue('blackAlpha.50', 'blackAlpha.50')}>
 				<Table variant='unstyled' size='sm' w={'full'}>
-					<Thead>
-						<Tr>
-							<Th textAlign='center'>Liquidity Token</Th>
-							<Th textAlign='center'>Top Up Expiry</Th>
-							<Th textAlign='center'>Liquidity</Th>
-							<Th textAlign='center'>Balance</Th>
-							<Th textAlign='center'>Allowance</Th>
-						</Tr>
-					</Thead>
+					<TableHeader />
 					<Tbody>
 						<Tr>
 							<Td textAlign='center'>USDC</Td>
@@ -103,13 +95,3 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 };
 
 export default StrollListItem;
-
-// Icon
-// Yeild Token Name
-// Returns
-// Duration
-
-// LP Token Name
-// approved amount
-// revoke button
-// platform

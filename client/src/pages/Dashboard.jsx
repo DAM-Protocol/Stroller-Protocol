@@ -13,6 +13,7 @@ import StrollListItem from '../components/StrollListItem';
 import Page from '../components/layouts/Page';
 import CreateStroll from './CreateStroll';
 import { SuperFluidContext } from '../context/SuperFluidContext';
+import AccordionHeaders from '../components/Headers/AccordionHeaders';
 
 const Dashboard = () => {
 	const [createStrollData, setCreateStrollData] = useState({
@@ -47,32 +48,7 @@ const Dashboard = () => {
 				</Heading>
 				<Divider my={5} />
 				<Accordion allowMultiple colorScheme='green'>
-					<Flex
-						align='center'
-						justify='space-between'
-						color={useColorModeValue('gray.700', 'gray.500')}
-						px={8}
-						py={5}
-						borderRadius='lg'>
-						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={2}>
-							#
-						</Text>
-						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={3}>
-							SYM
-						</Text>
-						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={6}>
-							Super Token
-						</Text>
-						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={8}>
-							Stream Rate (/s)
-						</Text>
-						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={8}>
-							Total Allowance
-						</Text>
-						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={8}>
-							Balance
-						</Text>
-					</Flex>
+					<AccordionHeaders />
 					<StrollListItem />
 					<StrollListItem />
 					<StrollListItem />
