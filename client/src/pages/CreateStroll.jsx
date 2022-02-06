@@ -108,6 +108,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 										AAVE Tokens
 									</CheckboxCard>
 									<CheckboxCard
+										isDisabled
 										{...getCheckboxProps({ value: 'ERC20 Tokens' })}>
 										ERC20 Tokens
 									</CheckboxCard>
@@ -124,7 +125,10 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 									<DateRange
 										editableDateInputs={true}
 										minDate={new Date()}
-										onChange={(item) => setDateRange([item.selection])}
+										onChange={(item) => {
+											if (item.selection.startDate < Date.now())
+												setDateRange([item.selection]);
+										}}
 										moveRangeOnFirstSelection={false}
 										ranges={dateRange}
 									/>
@@ -162,7 +166,7 @@ function CheckboxCard(props) {
 			<input {...input} />
 			<Box
 				{...checkbox}
-				cursor='pointer'
+				cursor={props.isDisabled ? 'not-allowed' : 'pointer'}
 				borderWidth='1px'
 				borderRadius='md'
 				boxShadow='md'
