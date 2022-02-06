@@ -25,6 +25,8 @@ const Dashboard = () => {
 	const { isOpen, onOpen, onClose } = useDisclosure();
 	const { sf } = useContext(SuperFluidContext);
 
+	window.sf = sf;
+
 	return (
 		<Page>
 			<Button
@@ -50,21 +52,26 @@ const Dashboard = () => {
 					<Flex
 						align='center'
 						justify='space-around'
-						px={5}
-						py={3}
-						color={useColorModeValue('gray.700', 'gray.500')}>
-						<Flex flex={1} />
-						<Flex mr={10} w={'30px'}></Flex>
-						<Text fontWeight='bold' fontSize='sm' flex={6}>
+						color={useColorModeValue('gray.700', 'gray.500')}
+						px={8}
+						py={5}
+						borderRadius='lg'>
+						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={2}>
+							#
+						</Text>
+						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={3}>
+							SYM
+						</Text>
+						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={6}>
 							Super Token
 						</Text>
-						<Text fontWeight='bold' fontSize='sm' flex={8}>
+						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={8}>
 							Stream Rate (/s)
 						</Text>
-						<Text fontWeight='bold' fontSize='sm' flex={8}>
+						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={8}>
 							Total Allowance
 						</Text>
-						<Text fontWeight='bold' fontSize='sm' flex={8}>
+						<Text textAlign='center' fontWeight='bold' fontSize='sm' flex={8}>
 							Balance
 						</Text>
 					</Flex>

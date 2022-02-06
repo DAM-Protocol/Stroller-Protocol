@@ -1,7 +1,9 @@
 import TokenSelector from '../components/TokenSelector';
+import { useContext } from 'react';
 import {
 	Heading,
 	Divider,
+	Box,
 	useDisclosure,
 	Flex,
 	Stack,
@@ -24,21 +26,34 @@ import {
 	Slider,
 	CheckboxGroup,
 	Checkbox,
+	useCheckbox,
+	useCheckboxGroup,
+	Text,
 } from '@chakra-ui/react';
+import { SuperFluidContext } from '../context/SuperFluidContext';
 
 const CreateStroll = ({ isOpen, onClose, data, setData }) => {
+	const { defaultTokenList } = useContext(SuperFluidContext);
 	const { method, token, duration } = data;
 	const {
 		isOpen: isTokenOpen,
 		onOpen: onTokenOpen,
 		onClose: onTokenClose,
 	} = useDisclosure();
+
+	const { value, getCheckboxProps } = useCheckboxGroup({
+		defaultValue: ['AAVE Tokens'],
+	});
+
 	return (
 		<>
 			<TokenSelector
 				isOpen={isTokenOpen}
 				onOpen={onTokenOpen}
 				onClose={onTokenClose}
+				tokenList={defaultTokenList}
+				data={data}
+				setData={setData}
 			/>
 			<Modal
 				isOpen={isOpen}
@@ -47,7 +62,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 				motionPreset='slideInBottom'
 				scrollBehavior='inside'
 				closeOnEsc
-				size='3xl'>
+				size='xl'>
 				<ModalOverlay />
 				<ModalContent>
 					<ModalHeader>Create a Stroll</ModalHeader>
@@ -56,16 +71,20 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 						<Flex align={'center'} justify={'center'}>
 							<FormControl width='90%'>
 								<FormLabel htmlFor='token'>Token</FormLabel>
-								<Button onClick={onTokenOpen}>Select Token</Button>
-								<CheckboxGroup
-									colorScheme='green'
-									defaultValue={['naruto', 'kakashi']}>
-									<Stack spacing={[1, 5]} direction={['column', 'row']}>
-										<Checkbox value='naruto'>Naruto</Checkbox>
-										<Checkbox value='sasuke'>Sasuke</Checkbox>
-										<Checkbox value='kakashi'>kakashi</Checkbox>
-									</Stack>
-								</CheckboxGroup>
+								<Flex align='center'>
+									<Text>Select a Token</Text>
+									<Button onClick={onTokenOpen}>Select Token</Button>
+								</Flex>
+								<FormLabel htmlFor='token'>Token Investment Methods</FormLabel>
+								<Flex align='center' justify='space-around'>
+									<CheckboxCard {...getCheckboxProps({ value: 'AAVE Tokens' })}>
+										AAVE Tokens
+									</CheckboxCard>
+									<CheckboxCard
+										{...getCheckboxProps({ value: 'ERC20 Tokens' })}>
+										ERC20) Tokens
+									</CheckboxCard>
+								</Flex>
 								<FormLabel htmlFor='duration'>Duration</FormLabel>
 								<Slider
 									aria-label='duration select'
@@ -106,6 +125,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 						<Button
 							onClick={() => {
 								console.log(data);
+								console.log(value, 'value');
 								onClose();
 							}}
 							colorScheme='green'>
@@ -117,5 +137,35 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 		</>
 	);
 };
+
+function CheckboxCard(props) {
+	const { state, getCheckboxProps, getInputProps } = useCheckbox(props);
+
+	const input = getInputProps();
+	const checkbox = getCheckboxProps();
+	return (
+		<Box as='label'>
+			<input {...input} />
+			<Box
+				{...checkbox}
+				cursor='pointer'
+				borderWidth='1px'
+				borderRadius='md'
+				boxShadow='md'
+				_checked={{
+					bg: 'green.600',
+					color: 'white',
+					borderColor: 'green.600',
+				}}
+				_focus={{
+					boxShadow: 'outline',
+				}}
+				px={5}
+				py={3}>
+				{props.children}
+			</Box>
+		</Box>
+	);
+}
 
 export default CreateStroll;

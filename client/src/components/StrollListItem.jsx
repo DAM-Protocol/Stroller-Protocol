@@ -14,6 +14,7 @@ import {
 	Thead,
 	Tbody,
 	Button,
+	Badge,
 } from '@chakra-ui/react';
 
 import { BiPlus, BiMinus } from 'react-icons/bi';
@@ -21,30 +22,29 @@ import { BiPlus, BiMinus } from 'react-icons/bi';
 const StrollListItem = () => {
 	return (
 		<AccordionItem>
-			<Flex
-				align='center'
-				justify='space-around'
-				bg={useColorModeValue('gray.100', 'gray.700')}
-				px={5}
-				py={3}
-				my={2}
-				borderRadius='lg'>
-				<h1 flex={1}>
-					<AccordionButton>
-						<AccordionIcon />
-					</AccordionButton>
-				</h1>
-				<Image
-					mr={8}
-					boxSize={'30px'}
-					src='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
-					alt='dai'
-				/>
-				<Text flex={6}>USDCx</Text>
-				<Text flex={8}>1</Text>
-				<Text flex={8}>10K</Text>
-				<Text flex={8}>97</Text>
-			</Flex>
+			<AccordionButton>
+				<Flex
+					align='center'
+					justify='space-around'
+					bg={useColorModeValue('gray.100', 'gray.700')}
+					px={5}
+					py={3}
+					my={2}
+					borderRadius='lg'
+					w='100%'>
+					<AccordionIcon flex={2} />
+					<Flex flex={3} align='center' justify='center'>
+						<Badge variant='outline' colorScheme='green' borderRadius='sm'>
+							USDC
+						</Badge>
+					</Flex>
+					<Text flex={6}>USDCx</Text>
+					<Text flex={8}>1</Text>
+					<Text flex={8}>10K</Text>
+					<Text flex={8}>97</Text>
+				</Flex>
+			</AccordionButton>
+
 			<AccordionPanel pb={4}>
 				<Table variant='unstyled' size='sm'>
 					<Thead>

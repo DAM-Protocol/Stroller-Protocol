@@ -17,7 +17,7 @@ import {
 import { GrFormSearch } from 'react-icons/gr';
 // import { screen } from '@testing-library/react';
 
-const TokenSelector = ({ isOpen, onClose, data, setData }) => {
+const TokenSelector = ({ isOpen, onClose, tokenList, data, setData }) => {
 	return (
 		<Modal
 			isOpen={isOpen}
@@ -63,6 +63,14 @@ const TokenSelector = ({ isOpen, onClose, data, setData }) => {
 						<Heading as='h3' fontSize='xl'>
 							Default Tokens
 						</Heading>
+						{tokenList.map((token, index) => (
+							<TokenCard
+								key={index}
+								icon={token.tk.logoURI}
+								token={token.name}
+								symbol={token.symbol}
+							/>
+						))}
 						<TokenCard
 							icon='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
 							token='Token'
