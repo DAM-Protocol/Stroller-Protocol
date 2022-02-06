@@ -48,10 +48,10 @@ const Dashboard = () => {
 					Dashboard
 				</Heading>
 				<Divider my={5} />
-				<Accordion allowToggle colorScheme='green'>
+				<Accordion allowMultiple colorScheme='green'>
 					<Flex
 						align='center'
-						justify='space-around'
+						justify='space-between'
 						color={useColorModeValue('gray.700', 'gray.500')}
 						px={8}
 						py={5}
