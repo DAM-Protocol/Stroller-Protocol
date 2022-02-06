@@ -1,5 +1,5 @@
 import TokenSelector from '../components/TokenSelector';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import {
 	Heading,
 	Divider,
@@ -45,6 +45,8 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 		defaultValue: ['AAVE Tokens'],
 	});
 
+	useEffect(() => setData({ ...data, method: value }), [value]);
+
 	return (
 		<>
 			<TokenSelector
@@ -73,7 +75,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 							<FormControl width='90%'>
 								<FormLabel htmlFor='token'>Token</FormLabel>
 								<Flex align='center'>
-									<Text>Select a Token</Text>
+									<Text>{token ? token : 'Select a Token'}</Text>
 									<Button onClick={onTokenOpen}>Select Token</Button>
 								</Flex>
 								<FormLabel htmlFor='token'>Token Investment Methods</FormLabel>
