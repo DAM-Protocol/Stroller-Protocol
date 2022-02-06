@@ -11,8 +11,14 @@ import {
 } from '@chakra-ui/react';
 import TokenSelector from '../components/TokenModal/TokenSelector';
 import CreateForm from '../components/CreateForm/CreateForm';
+import { useState } from 'react';
 
-const CreateStroll = ({ isOpen, onClose, data, setData }) => {
+const CreateStroll = ({ isOpen, onClose }) => {
+	const [createStrollData, setCreateStrollData] = useState({
+		token: '',
+		method: [],
+		duration: 0,
+	});
 	const {
 		isOpen: isTokenOpen,
 		onOpen: onTokenOpen,
@@ -25,8 +31,8 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 				isOpen={isTokenOpen}
 				onOpen={onTokenOpen}
 				onClose={onTokenClose}
-				data={data}
-				setData={setData}
+				data={createStrollData}
+				setData={setCreateStrollData}
 			/>
 			<Modal
 				isOpen={isOpen}
@@ -42,8 +48,8 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 					<ModalCloseButton />
 					<ModalBody>
 						<CreateForm
-							data={data}
-							setData={setData}
+							data={createStrollData}
+							setData={setCreateStrollData}
 							onTokenOpen={onTokenOpen}
 						/>
 					</ModalBody>
@@ -53,7 +59,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 						</Button>
 						<Button
 							onClick={() => {
-								console.log(data);
+								console.log(createStrollData);
 								onClose();
 							}}
 							colorScheme='green'>

@@ -47,7 +47,20 @@ const CreateForm = ({ data, setData, onTokenOpen }) => {
 						px={8}
 						w='30ch'
 						bg={useColorModeValue('gray.100', 'gray.600')}
-						borderRadius='md'>
+						borderRadius='md'
+						position={'relative'}
+						_after={{
+							content: "''",
+							position: 'absolute',
+							right: '3',
+							top: '50%',
+							transform: 'translateY(-50%)',
+							width: '30px',
+							height: '30px',
+							borderRadius: '50%',
+							background: `url('${data?.icon}')`,
+							backgroundSize: 'cover',
+						}}>
 						{token ? token : 'Select a Token'}
 					</Text>
 					<Button onClick={onTokenOpen}>
@@ -64,7 +77,7 @@ const CreateForm = ({ data, setData, onTokenOpen }) => {
 				</FormLabel>
 				<Flex align='center' justify='space-evenly' mb={7}>
 					<CheckboxCard {...getCheckboxProps({ value: 'AAVE Tokens' })}>
-						AAVE Tokens
+						Aave
 					</CheckboxCard>
 					<CheckboxCard
 						isDisabled

@@ -15,12 +15,13 @@ const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 			px={10}
 			my={1}
 			onClick={() => {
-				setData({ ...data, token: symbol.toUpperCase() });
+				setData({ ...data, token: symbol, icon });
 				onClose();
 			}}>
 			<Flex align='center'>
 				<Image
 					boxSize='30px'
+					borderRadius='50%'
 					src={icon}
 					alt={symbol}
 					mr={5}

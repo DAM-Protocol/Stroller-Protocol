@@ -5,9 +5,11 @@ const Landing = () => {
 	return (
 		<Page>
 			<Heading as='h1' size='2xl'>
-				Stroller
+				Stroll Protocol
 			</Heading>
-			<Text>X-men</Text>
+			<Text>
+				Stroll is a protocol that provides automatic Top-Ups for Super Tokens
+			</Text>
 		</Page>
 	);
 };
