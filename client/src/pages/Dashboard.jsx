@@ -11,20 +11,13 @@ import {
 } from '@chakra-ui/react';
 import StrollListItem from '../components/StrollListItem';
 import Page from '../components/layouts/Page';
-import CreateStroll from './CreateStroll';
+import CreateStroll from '../components/CreateStroll';
 import { SuperFluidContext } from '../context/SuperFluidContext';
 import AccordionHeaders from '../components/Headers/AccordionHeaders';
 
 const Dashboard = () => {
-	const [createStrollData, setCreateStrollData] = useState({
-		token: '',
-		method: [],
-		duration: 0,
-	});
 	const { isOpen, onOpen, onClose } = useDisclosure();
-	const { sf } = useContext(SuperFluidContext);
-
-	window.sf = sf;
+	const { defaultTokenLookup } = useContext(SuperFluidContext);
 
 	return (
 		<Page>
@@ -36,12 +29,7 @@ const Dashboard = () => {
 				right={5}>
 				Create a Stroll
 			</Button>
-			<CreateStroll
-				isOpen={isOpen}
-				onClose={onClose}
-				data={createStrollData}
-				setData={setCreateStrollData}
-			/>
+			<CreateStroll isOpen={isOpen} onClose={onClose} />
 			<Flex flexDirection='column'>
 				<Heading as='h1' textAlign={'center'}>
 					Dashboard
@@ -49,13 +37,23 @@ const Dashboard = () => {
 				<Divider my={5} />
 				<Accordion allowMultiple colorScheme='green'>
 					<AccordionHeaders />
-					<StrollListItem />
-					<StrollListItem />
-					<StrollListItem />
+					<StrollListItem
+						tokenData={
+							defaultTokenLookup['0x3a27ff22eef2db03e91613ca4ba37e21ee21458a']
+						}
+					/>
+					{/* <StrollListItem isLoading /> */}
 				</Accordion>
 			</Flex>
 		</Page>
 	);
 };
+
+const topUps = [
+	{
+		superToken: '0x3a27ff22eef2db03e91613ca4ba37e21ee21458a',
+		token: '0xbd21a10f619be90d6066c941b04e340841f1f989',
+	},
+];
 
 export default Dashboard;

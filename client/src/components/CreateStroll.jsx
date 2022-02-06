@@ -9,8 +9,8 @@ import {
 	ModalBody,
 	ModalCloseButton,
 } from '@chakra-ui/react';
-import TokenSelector from '../components/TokenModal/TokenSelector';
-import CreateForm from '../components/CreateForm/CreateForm';
+import TokenSelector from './TokenModal/TokenSelector';
+import CreateForm from './CreateForm/CreateForm';
 import { useState } from 'react';
 
 const CreateStroll = ({ isOpen, onClose }) => {
