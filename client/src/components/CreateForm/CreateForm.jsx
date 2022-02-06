@@ -39,10 +39,12 @@ const CreateForm = ({ data, setData, onTokenOpen }) => {
 					fontSize='sm'
 					fontWeight='bold'
 					color='gray.300'>
-					Token
+					Super Token
 				</FormLabel>
 				<Flex align='center' justify='space-between' mb={7}>
 					<Text
+						onClick={onTokenOpen}
+						cursor='pointer'
 						py={2}
 						px={8}
 						w='30ch'

@@ -1,5 +1,5 @@
 import { Framework } from '@superfluid-finance/sdk-core';
-import { createContext, useState } from 'react';
+import { createContext, useState, useMemo } from 'react';
 import { useMoralis, useMoralisWeb3Api } from 'react-moralis';
 import { ethers } from 'ethers';
 import { useEffect } from 'react';
@@ -43,6 +43,13 @@ const SuperFluidProvider = ({ children }) => {
 	const { tokensLookup } = useDefaultERC20Tokens();
 
 	const [defaultTokenList, setDefaultTokenList] = useState([]);
+	const defaultTokenLookup = useMemo(() => {
+		return defaultTokenList.reduce((acc, token) => {
+			acc[token.id] = token;
+			return acc;
+		}, {});
+	}, [defaultTokenList]);
+
 	const [userTokenList, setUserTokenList] = useState([]);
 
 	const [getSuperTokenList] = useSfSubgraphLazyQuery(GET_SUPER_TOKENS);
@@ -60,7 +67,7 @@ const SuperFluidProvider = ({ children }) => {
 			if (defaultSuperTokenData.tokens) {
 				const tempTokenList = [];
 
-				Object.values(defaultSuperTokenData.tokens).forEach((token) => {
+				defaultSuperTokenData.tokens.forEach((token) => {
 					tempTokenList.push({
 						...token,
 						tk: {
@@ -81,7 +88,7 @@ const SuperFluidProvider = ({ children }) => {
 		(async () => {
 			if (sf) {
 				let pageResult = await sf.query?.listUserInteractedSuperTokens({
-					account: web3?.provider.selectedAddress.toLowerCase(),
+					account: web3?.provider?.selectedAddress?.toLowerCase(),
 				});
 				if (pageResult.data) {
 					const data = pageResult.data;
@@ -144,7 +151,13 @@ const SuperFluidProvider = ({ children }) => {
 
 	return (
 		<SuperFluidContext.Provider
-			value={{ sf: sf, defaultTokenList, userTokenList, sfProvider }}>
+			value={{
+				sf: sf,
+				defaultTokenList,
+				defaultTokenLookup,
+				userTokenList,
+				sfProvider,
+			}}>
 			{children}
 		</SuperFluidContext.Provider>
 	);

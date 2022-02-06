@@ -6,9 +6,9 @@ const TableHeader = () => {
 			<Tr>
 				<Th textAlign='center'>Liquidity Token</Th>
 				<Th textAlign='center'>Top Up Expiry</Th>
-				<Th textAlign='center'>Liquidity</Th>
 				<Th textAlign='center'>Balance</Th>
 				<Th textAlign='center'>Allowance</Th>
+				<Th textAlign='center'>Edit Allowance</Th>
 			</Tr>
 		</Thead>
 	);
