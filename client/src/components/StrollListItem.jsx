@@ -49,27 +49,19 @@ const StrollListItem = () => {
 				<Table variant='unstyled' size='sm'>
 					<Thead>
 						<Tr>
-							<Th></Th>
 							<Th>Liquidity Token</Th>
 							<Th>Top Up Expiry</Th>
 							<Th>Liquidity</Th>
+							<Th>Balance</Th>
 							<Th>Allowance</Th>
 						</Tr>
 					</Thead>
 					<Tbody>
 						<Tr>
-							<Td>
-								<Flex align='center' justify='flex-end'>
-									<Image
-										boxSize={'30px'}
-										src='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
-										alt='dai'
-									/>
-								</Flex>
-							</Td>
 							<Td>USDC</Td>
 							<Td>2/2/22</Td>
 							<Td>10K</Td>
+							<Td>100</Td>
 							<Td>
 								<Button mr={3}>
 									<BiMinus />

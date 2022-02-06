@@ -33,7 +33,7 @@ import {
 import { SuperFluidContext } from '../context/SuperFluidContext';
 
 const CreateStroll = ({ isOpen, onClose, data, setData }) => {
-	const { defaultTokenList } = useContext(SuperFluidContext);
+	const { defaultTokenList, userTokenList } = useContext(SuperFluidContext);
 	const { method, token, duration } = data;
 	const {
 		isOpen: isTokenOpen,
@@ -52,6 +52,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 				onOpen={onTokenOpen}
 				onClose={onTokenClose}
 				tokenList={defaultTokenList}
+				userTokenList={userTokenList}
 				data={data}
 				setData={setData}
 			/>
