@@ -14,67 +14,66 @@ require("hardhat-deploy");
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  solidity: {
-    version: "0.8.4",
-    settings: {
-      optimizer: {
+    solidity: {
+        version: "0.8.4",
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 200,
+            },
+        },
+    },
+    networks: {
+        hardhat: {
+            initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
+            forking: {
+                // url: process.env.POLYGON_NODE_URL,
+                // blockNumber: 23736635,
+                url: process.env.MUMBAI_NODE_URL,
+                blockNumber: 24645049,
+                enabled: true,
+            },
+            blockGasLimit: 20000000,
+            gasPrice: 30000000000,
+            saveDeployments: false,
+        },
+        polygon: {
+            url: process.env.POLYGON_NODE_URL,
+            blockGasLimit: 20000000,
+            gasPrice: 40000000000,
+            accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
+            saveDeployments: true,
+        },
+        mumbai: {
+            url: process.env.MUMBAI_NODE_URL,
+            accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
+            saveDeployments: true,
+        },
+    },
+    gasReporter: {
         enabled: true,
-        runs: 200,
-      },
+        currency: "USD",
+        token: "MATIC",
+        gasPrice: 40, // Set to 40 GWei
+        gasPriceApi: "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
+        showTimeSpent: true,
     },
-  },
-  networks: {
-    hardhat: {
-      initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
-      forking: {
-        // url: process.env.POLYGON_NODE_URL,
-        // blockNumber: 23736635,
-        url: process.env.MUMBAI_NODE_URL,
-        blockNumber: 24645049,
-        enabled: true,
-      },
-      blockGasLimit: 20000000,
-      gasPrice: 30000000000,
-      saveDeployments: false,
+    etherscan: {
+        apiKey: process.env.POLYGONSCAN_KEY,
     },
-    polygon: {
-      url: process.env.POLYGON_NODE_URL,
-      blockGasLimit: 20000000,
-      gasPrice: 40000000000,
-      accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
-      saveDeployments: true,
+    contractSizer: {
+        alphaSort: true,
+        disambiguatePaths: false,
+        runOnCompile: true,
     },
-    mumbai: {
-      url: process.env.MUMBAI_NODE_URL,
-      accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
-      saveDeployments: true,
+    namedAccounts: {
+        deployer: {
+            default: 0,
+            137: "0x3c6812B64E44bfd348A08EE3Caf8d1B85a36478c",
+            80001: "0x70a3DCa912c9ea5138952B56Ef7E0a94F8E5bB02",
+        },
     },
-  },
-  gasReporter: {
-    enabled: true,
-    currency: "USD",
-    token: "MATIC",
-    gasPrice: 40, // Set to 40 GWei
-    gasPriceApi:
-      "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
-    showTimeSpent: true,
-  },
-  etherscan: {
-    apiKey: process.env.POLYGONSCAN_KEY,
-  },
-  contractSizer: {
-    alphaSort: true,
-    disambiguatePaths: false,
-    runOnCompile: true,
-  },
-  namedAccounts: {
-    deployer: {
-      default: 0,
-      137: "0x452181dAe31Cf9f42189df71eC64298993BEe6d3",
-      80001: "0x917A19E71a2811504C4f64aB33c132063B5772a5",
+    mocha: {
+        timeout: 0,
     },
-  },
-  mocha: {
-    timeout: 0,
-  },
 };

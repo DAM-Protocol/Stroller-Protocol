@@ -31,6 +31,26 @@ contract Registry is Ownable {
     uint256 public scanLength;
     IStrollResolver private immutable strollResolver;
 
+    event TopUpCreated(
+        uint256 indexed id,
+        address indexed user,
+        address indexed superToken,
+        address liquidityToken,
+        address strategy,
+        uint256 time
+    );
+
+    event TopUpDeleted(
+        uint256 indexed id,
+        address indexed user,
+        address indexed superToken,
+        address liquidityToken,
+        address strategy,
+        uint256 time
+    );
+
+    event PerformedTopUp(uint256 indexed id);
+
     constructor(IStrollResolver _strollResolver, uint256 _scanLength) {
         strollResolver = _strollResolver;
         scanLength = _scanLength;
@@ -68,7 +88,7 @@ contract Registry is Ownable {
         require(index == 0, "TopUp already exists");
 
         // create new topUp
-        TopUp memory topUp = TopUp(
+        TopUp memory topup = TopUp(
             msg.sender,
             ISuperToken(_superToken),
             Strategy(IStrategy(_strategy), _liquidityToken),
@@ -77,13 +97,22 @@ contract Registry is Ownable {
 
         if (deletedTopUps.length > 0) {
             index = deletedTopUps[deletedTopUps.length - 1];
-            topUps[index] = topUp;
+            topUps[index] = topup;
             deletedTopUps.pop();
         } else {
             index = topUps.length;
-            topUps.push(topUp);
+            topUps.push(topup);
         }
         topUpMap[msg.sender][_superToken] = index;
+
+        emit TopUpCreated(
+            index,
+            msg.sender,
+            _superToken,
+            _liquidityToken,
+            _strategy,
+            _time
+        );
     }
 
     function getTopUp(address _user, address _superToken)
@@ -153,12 +182,14 @@ contract Registry is Ownable {
     }
 
     function performTopUp(uint256 _index) public {
+        require(checkTopUp(_index), "TopUp check failed");
         TopUp memory topup = topUps[_index];
         topup.strategy.strategyAddress.topUp(
             topup.owner,
             topup.strategy.token,
             ISuperToken(topup.superToken)
         );
+        emit PerformedTopUp(_index);
     }
 
     // ChainLink functions
@@ -196,6 +227,14 @@ contract Registry is Ownable {
 
         topUps[_index].owner = address(0);
         deletedTopUps.push(_index);
+        emit TopUpDeleted(
+            _index,
+            topup.owner,
+            address(topup.superToken),
+            topup.strategy.token,
+            address(topup.strategy.strategyAddress),
+            topup.time
+        );
     }
 
     function deleteTopUp(address _user, address _superToken) public {
