@@ -52,7 +52,7 @@ contract AaveStrollOut is IStrategy {
             "Incorrect supertoken"
         );
 
-        (bool reqTopUp, uint256 idealWithdrawAmount) = _superToken.requireTopUp(
+        (, uint256 idealWithdrawAmount) = _superToken.requireTopUp(
             _user,
             strollResolver.lowerLimit(),
             strollResolver.upperLimit()
