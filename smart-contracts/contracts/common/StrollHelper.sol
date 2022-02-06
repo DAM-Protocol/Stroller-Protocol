@@ -48,4 +48,21 @@ library StrollHelper {
 
         return (false, 0);
     }
+
+    function checkTopUp(
+        ISuperToken _superToken,
+        address _user,
+        uint128 _lowerLimit
+    ) external view returns (bool) {
+        int96 flowRate = CFA_V1.getNetFlow(_superToken, _user);
+
+        if (flowRate < 0) {
+            uint256 balance = _superToken.balanceOf(_user);
+            uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
+
+            if (balance <= (positiveFlowRate * _lowerLimit)) return true;
+        }
+
+        return false;
+    }
 }
