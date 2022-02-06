@@ -13,6 +13,11 @@ interface IERC20Mod is IERC20 {
     function decimals() external view returns (uint8);
 }
 
+/**
+ * @title Strategy helper contract
+ * @author rashtrakoff
+ * @dev Contains functions which are useful for strategy contracts and keepers
+ */
 library StrollHelper {
     // For mainnet deployment
     // IConstantFlowAgreementV1 public constant CFA_V1 =

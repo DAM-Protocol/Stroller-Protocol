@@ -1,12 +1,16 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStrategy.sol";
+import "./common/StrollHelper.sol";
+import "./interfaces/IStrollResolver.sol";
+import "hardhat/console.sol";
 
 // solhint-disable not-rely-on-time
 contract Registry is Ownable {
+    using StrollHelper for ISuperToken;
+
     struct Strategy {
         IStrategy strategyAddress;
         address token;
@@ -15,7 +19,7 @@ contract Registry is Ownable {
     // Modify this struct later to support multiple strategies in the future
     struct TopUp {
         address owner;
-        address superToken;
+        ISuperToken superToken;
         Strategy strategy;
         uint256 time;
     }
@@ -24,18 +28,22 @@ contract Registry is Ownable {
     mapping(address => mapping(address => uint256)) private topUpMap; // user => superToken => uint
     uint256[] private deletedTopUps;
 
-    uint256 private scanLength;
+    uint256 public scanLength;
+    IStrollResolver private immutable strollResolver;
 
-    constructor() {
+    constructor(IStrollResolver _strollResolver, uint256 _scanLength) {
+        strollResolver = _strollResolver;
+        scanLength = _scanLength;
+
         TopUp memory topUp;
         topUps.push(topUp);
     }
 
-    function getScanLength() public view returns (uint256) {
-        return scanLength;
-    }
+    // function getScanLength() public view returns (uint256) {
+    //     return scanLength;
+    // }
 
-    function setScanLength(uint256 _scanLength) public onlyOwner {
+    function setScanLength(uint256 _scanLength) external onlyOwner {
         scanLength = _scanLength;
     }
 
@@ -44,18 +52,25 @@ contract Registry is Ownable {
         address _strategy,
         address _liquidityToken,
         uint256 _time
-    ) public {
-        require(_superToken != address(0), "0 Address not allowed");
+    ) external {
+        require(
+            _superToken != address(0) &&
+                _strategy != address(0) &&
+                _liquidityToken != address(0),
+            "Null Address"
+        );
+
+        require(_time > block.timestamp, "Invalid time");
 
         // check if topUp already exists for given user and superToken
         uint256 index = getTopUpIndex(msg.sender, _superToken);
 
-        require(index != 0, "TopUp already exists");
+        require(index == 0, "TopUp already exists");
 
         // create new topUp
         TopUp memory topUp = TopUp(
             msg.sender,
-            _superToken,
+            ISuperToken(_superToken),
             Strategy(IStrategy(_strategy), _liquidityToken),
             _time
         );
@@ -76,7 +91,7 @@ contract Registry is Ownable {
         view
         returns (
             address,
-            address,
+            ISuperToken,
             Strategy memory,
             uint256
         )
@@ -98,7 +113,7 @@ contract Registry is Ownable {
         view
         returns (
             address,
-            address,
+            ISuperToken,
             Strategy memory,
             uint256
         )
@@ -117,13 +132,24 @@ contract Registry is Ownable {
     }
 
     function checkTopUp(uint256 _index) public view returns (bool) {
-        require(_index < topUps.length, "Index out of bounds");
+        if (_index >= topUps.length) return false;
 
         TopUp memory topup = topUps[_index];
-        require(topup.time > block.timestamp, "Task expired");
-        require(topup.owner != address(0), "TopUp deleted");
+        if (
+            topup.owner == address(0) ||
+            topup.time < block.timestamp ||
+            IERC20(topup.strategy.token).allowance(
+                topup.owner,
+                address(topup.strategy.strategyAddress)
+            ) ==
+            0
+        ) return false;
 
-        return true;
+        return
+            topup.superToken.checkTopUp(
+                topup.owner,
+                strollResolver.lowerLimit()
+            );
     }
 
     function performTopUp(uint256 _index) public {
@@ -152,7 +178,6 @@ contract Registry is Ownable {
 
     function performUpkeep(bytes calldata performData) external {
         uint256 index = abi.decode(performData, (uint256));
-
         performTopUp(index);
     }
 
@@ -163,8 +188,11 @@ contract Registry is Ownable {
             topup.owner == msg.sender || topup.time < block.timestamp,
             "Can't delete TopUp"
         );
-        require(topUpMap[topup.owner][topup.superToken] > 0, "TopUp not found");
-        topUpMap[topup.owner][topup.superToken] = 0;
+        require(
+            topUpMap[topup.owner][address(topup.superToken)] > 0,
+            "TopUp not found"
+        );
+        topUpMap[topup.owner][address(topup.superToken)] = 0;
 
         topUps[_index].owner = address(0);
         deletedTopUps.push(_index);
@@ -177,22 +205,9 @@ contract Registry is Ownable {
         deleteTopUp(index);
     }
 
-    // function addStrategy(address _liquidityToken, address _strategy) public {
-    //     require(_liquidityToken != address(0), "0 Address not allowed");
-    //     require(_strategy != address(0), "0 Address not allowed");
-    //     require(
-    //         strategies[_liquidityToken] == IStrategy(address(0)),
-    //         "Strategy already exists"
-    //     );
-    //     strategies[_liquidityToken] = IStrategy(address(_strategy));
-    // }
-
-    // function removeStrategy(address _liquidityToken) public {
-    //     require(_liquidityToken != address(0), "0 Address not allowed");
-    //     require(
-    //         strategies[_liquidityToken] != IStrategy(address(0)),
-    //         "Strategy does not exist"
-    //     );
-    //     strategies[_liquidityToken] = IStrategy(address(0));
-    // }
+    function deleteBatch(uint256[] calldata _indices) public {
+        for (uint256 i = 0; i < _indices.length; i++) {
+            deleteTopUp(_indices[i]);
+        }
+    }
 }

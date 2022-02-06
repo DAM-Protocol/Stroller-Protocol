@@ -23,33 +23,33 @@ module.exports = {
             },
         },
     },
-    // networks: {
-    //   hardhat: {
-    //     initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
-    //     forking: {
-    //       url: process.env.POLYGON_NODE_URL,
-    //       blockNumber: 23736635,
-    //       // url: process.env.MUMBAI_NODE_URL,
-    //       // blockNumber: 24603240,
-    //       enabled: true,
-    //     },
-    //     blockGasLimit: 20000000,
-    //     gasPrice: 30000000000,
-    //     saveDeployments: false,
-    //   },
-    //   polygon: {
-    //     url: process.env.POLYGON_NODE_URL,
-    //     blockGasLimit: 20000000,
-    //     gasPrice: 40000000000,
-    //     accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
-    //     saveDeployments: true,
-    //   },
-    //   mumbai: {
-    //     url: process.env.MUMBAI_NODE_URL,
-    //     accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
-    //     saveDeployments: true,
-    //   },
-    // },
+    networks: {
+        hardhat: {
+            initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
+            forking: {
+                // url: process.env.POLYGON_NODE_URL,
+                // blockNumber: 23736635,
+                url: process.env.MUMBAI_NODE_URL,
+                blockNumber: 24645049,
+                enabled: true,
+            },
+            blockGasLimit: 20000000,
+            gasPrice: 30000000000,
+            saveDeployments: false,
+        },
+        // polygon: {
+        //     url: process.env.POLYGON_NODE_URL,
+        //     blockGasLimit: 20000000,
+        //     gasPrice: 40000000000,
+        //     accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
+        //     saveDeployments: true,
+        // },
+        // mumbai: {
+        //     url: process.env.MUMBAI_NODE_URL,
+        //     accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
+        //     saveDeployments: true,
+        // },
+    },
     gasReporter: {
         enabled: true,
         currency: "USD",

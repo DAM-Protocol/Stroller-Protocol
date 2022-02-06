@@ -4,6 +4,11 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IStrollResolver.sol";
 
+/**
+ * @title Resolver contract for Stroll
+ * @author rashtrakoff
+ * @dev
+ */
 contract StrollResolver is Ownable, IStrollResolver {
     /// @notice Number of LP tokens or equivalent assets that a user can provide for making top ups
     uint32 public override supplyAssetLimit;
@@ -13,6 +18,9 @@ contract StrollResolver is Ownable, IStrollResolver {
 
     /// @notice Number of seconds, hours or days worth of liquidity below which top up is done
     uint128 public override lowerLimit;
+
+    /// @notice Registry contract containing top up data
+    address public override strollRegistry;
 
     /// @notice Map of underlying tokens and their super tokens
     mapping(address => ISuperToken) public override supportedSuperToken;
@@ -67,6 +75,15 @@ contract StrollResolver is Ownable, IStrollResolver {
         lowerLimit = _newLowerLimit;
 
         emit ChangedLowerLimit(_newLowerLimit);
+    }
+
+    function changeStrollRegistry(address _strollRegistry) external override {
+        _onlyOwner(msg.sender);
+        require(_strollRegistry != address(0), "Null address");
+
+        strollRegistry = _strollRegistry;
+
+        emit ChangedStrollRegistry(_strollRegistry);
     }
 
     function _onlyOwner(address _caller) internal view {

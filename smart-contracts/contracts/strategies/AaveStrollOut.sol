@@ -41,6 +41,8 @@ contract AaveStrollOut is IStrategy {
         address _aToken,
         ISuperToken _superToken
     ) external override {
+        require(msg.sender == strollResolver.strollRegistry(), "Not registry");
+
         // Get underlying token address for the `_aToken`
         // NOTE: This line can revert a transaction if `_aToken` isn't a valid one
         address underlyingToken = IAToken(_aToken).UNDERLYING_ASSET_ADDRESS();
@@ -63,8 +65,8 @@ contract AaveStrollOut is IStrategy {
         );
 
         // Topup is necessary only if liquidity will last for less than lowerLimit
-        require(reqTopUp, "TopUp not required");
-        require(totalWithdrawable > 0, "Not enough allowance");
+        // require(reqTopUp, "TopUp not required");
+        // require(totalWithdrawable > 0, "Not enough allowance");
 
         address lendingPool = LENDINGPOOL_ADDRESSES_PROVIDER.getLendingPool();
 
