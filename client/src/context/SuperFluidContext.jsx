@@ -20,8 +20,10 @@ const SuperFluidContext = createContext({
 
 const SuperFluidProvider = ({ children }) => {
 	const { web3, isWeb3Enabled } = useMoralis();
+	window.web3 = web3;
 
 	const [sf, setSf] = useState(null);
+	const [sfProvider, setSfProvider] = useState(null);
 	useEffect(() => {
 		(async () => {
 			if (!isWeb3Enabled) return null;
@@ -32,6 +34,8 @@ const SuperFluidProvider = ({ children }) => {
 				networkName: 'mumbai',
 				provider: mmProvider,
 			});
+			window.SfProvider = mmProvider;
+			setSfProvider(mmProvider);
 			setSf(_sf);
 		})();
 	}, [isWeb3Enabled, web3]);
@@ -77,7 +81,7 @@ const SuperFluidProvider = ({ children }) => {
 		(async () => {
 			if (sf) {
 				let pageResult = await sf.query?.listUserInteractedSuperTokens({
-					account: '0x917A19E71a2811504C4f64aB33c132063B5772a5'.toLowerCase(),
+					account: web3?.provider.selectedAddress.toLowerCase(),
 				});
 				if (pageResult.data) {
 					const data = pageResult.data;
@@ -130,7 +134,7 @@ const SuperFluidProvider = ({ children }) => {
 				}
 			}
 		})();
-	}, [sf]);
+	}, [getSuperTokenList, sf, tokensLookup, web3?.provider.selectedAddress]);
 
 	useEffect(() => {
 		console.log(defaultTokenList, userTokenList);
@@ -138,7 +142,7 @@ const SuperFluidProvider = ({ children }) => {
 
 	return (
 		<SuperFluidContext.Provider
-			value={{ sf: sf, defaultTokenList, userTokenList }}>
+			value={{ sf: sf, defaultTokenList, userTokenList, sfProvider }}>
 			{children}
 		</SuperFluidContext.Provider>
 	);
