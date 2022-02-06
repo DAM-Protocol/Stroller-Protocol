@@ -1,4 +1,4 @@
-import { Flex, Image, Text, Badge, useColorModeValue } from '@chakra-ui/core';
+import { Flex, Image, Text, Badge, useColorModeValue } from '@chakra-ui/react';
 
 const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 	return (

@@ -41,7 +41,11 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 					<ModalHeader>Create a Stroll</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
-						<CreateForm />
+						<CreateForm
+							data={data}
+							setData={setData}
+							onTokenOpen={onTokenOpen}
+						/>
 					</ModalBody>
 					<ModalFooter width={'100%'}>
 						<Button variant='ghost' mr={3} onClick={onClose}>
@@ -50,7 +54,6 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 						<Button
 							onClick={() => {
 								console.log(data);
-								console.log(value, 'value');
 								onClose();
 							}}
 							colorScheme='green'>

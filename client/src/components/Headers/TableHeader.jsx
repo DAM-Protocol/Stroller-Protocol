@@ -1,4 +1,4 @@
-import { Thead, Tr, Th } from '@chakra-ui/core';
+import { Thead, Tr, Th } from '@chakra-ui/react';
 
 const TableHeader = () => {
 	return (

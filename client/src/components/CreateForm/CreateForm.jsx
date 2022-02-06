@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
 	Flex,
 	FormControl,
@@ -7,14 +7,15 @@ import {
 	Button,
 	useCheckboxGroup,
 	useColorModeValue,
-} from '@chakra-ui/core';
+	useDisclosure,
+} from '@chakra-ui/react';
 import { DateRange } from 'react-date-range';
 import { addDays } from 'date-fns';
 import CheckboxCard from './CheckboxCard';
 import 'react-date-range/dist/styles.css'; // main css file
 import 'react-date-range/dist/theme/default.css'; // theme css file
 
-const CreateForm = ({ data, setData }) => {
+const CreateForm = ({ data, setData, onTokenOpen }) => {
 	const { token } = data;
 	const [dateRange, setDateRange] = useState([
 		{

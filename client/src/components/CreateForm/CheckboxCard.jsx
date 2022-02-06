@@ -1,6 +1,6 @@
 import { useCheckbox, Box } from '@chakra-ui/react';
 
-const CheckboxCard = () => {
+const CheckboxCard = (props) => {
 	const { getCheckboxProps, getInputProps } = useCheckbox(props);
 	const input = getInputProps();
 	const checkbox = getCheckboxProps();
