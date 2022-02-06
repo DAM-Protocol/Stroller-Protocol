@@ -5,7 +5,7 @@ const Landing = () => {
 	return (
 		<Page>
 			<Heading as='h1' size='2xl'>
-				Stroll
+				Stroller
 			</Heading>
 			<Text>X-men</Text>
 		</Page>

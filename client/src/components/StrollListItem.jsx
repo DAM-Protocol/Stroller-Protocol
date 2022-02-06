@@ -26,6 +26,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 	const { user, web3, Moralis } = useMoralis();
 	const [coin, setCoin] = useState({});
 	const [balance, setBalance] = useState(0);
+
 	useEffect(() => {
 		if (sf)
 			(async () => {
@@ -41,6 +42,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 				setBalance(balance.availableBalance);
 			})();
 	}, [sf, user, web3]);
+
 	return (
 		<AccordionItem my={4}>
 			<AccordionButton>
@@ -85,7 +87,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 							<Td textAlign='center'>10K</Td>
 							<Td textAlign='center'>100</Td>
 							<Td textAlign='center'>
-								<Button mr={3} colorScheme='red' variant='outline'>
+								<Button mr={3} colorScheme='red' size='sm' variant='outline'>
 									<BiMinus />
 								</Button>
 								<Button colorScheme='green' size='sm'>

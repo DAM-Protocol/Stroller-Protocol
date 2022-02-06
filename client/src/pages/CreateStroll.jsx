@@ -27,7 +27,7 @@ import 'react-date-range/dist/theme/default.css'; // theme css file
 
 const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 	const { defaultTokenList, userTokenList } = useContext(SuperFluidContext);
-	const { token, duration } = data;
+	const { token } = data;
 	const {
 		isOpen: isTokenOpen,
 		onOpen: onTokenOpen,
@@ -157,7 +157,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 };
 
 function CheckboxCard(props) {
-	const { state, getCheckboxProps, getInputProps } = useCheckbox(props);
+	const { getCheckboxProps, getInputProps } = useCheckbox(props);
 
 	const input = getInputProps();
 	const checkbox = getCheckboxProps();

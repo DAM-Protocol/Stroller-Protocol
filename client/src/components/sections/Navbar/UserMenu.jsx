@@ -1,9 +1,6 @@
 import { useMoralis } from 'react-moralis';
 import makeBlockie from 'ethereum-blockies-base64';
 import {
-	Flex,
-	Link,
-	useColorModeValue,
 	Avatar,
 	Button,
 	Menu,
@@ -12,7 +9,6 @@ import {
 	MenuItem,
 	MenuDivider,
 	Center,
-	HStack,
 	Text,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';

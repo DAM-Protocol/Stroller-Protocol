@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
 	Flex,
 	useColorModeValue,
@@ -11,14 +10,14 @@ import {
 } from '@chakra-ui/react';
 import { ColorModeSwitcher } from '../../ColorModeSwitcher';
 import UserMenu from './UserMenu';
-import { ExternalLink, NavLink } from './Links';
+import { NavLink } from './Links';
 import { VscClose } from 'react-icons/vsc';
 import { RiMenu5Fill } from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChain } from 'react-moralis';
 
 const Navbar = (props) => {
-	const { switchNetwork, chainId, chain } = useChain();
+	const { switchNetwork, chain } = useChain();
 	const bgColor = useColorModeValue('whiteAlpha.800', 'blackAlpha.700');
 	const { isOpen, onToggle } = useDisclosure();
 

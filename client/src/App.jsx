@@ -10,13 +10,8 @@ import { useMoralis } from 'react-moralis';
 import { useEffect } from 'react';
 
 const App = () => {
-	const {
-		isAuthenticated,
-		enableWeb3,
-		isWeb3Enabled,
-		isWeb3EnableLoading,
-		Moralis,
-	} = useMoralis();
+	const { isAuthenticated, enableWeb3, isWeb3Enabled, isWeb3EnableLoading } =
+		useMoralis();
 	useEffect(() => {
 		if (isAuthenticated && !isWeb3Enabled && !isWeb3EnableLoading) enableWeb3();
 		// eslint-disable-next-line react-hooks/exhaustive-deps

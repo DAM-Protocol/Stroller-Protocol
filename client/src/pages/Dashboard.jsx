@@ -1,13 +1,11 @@
 import { useState, useContext } from 'react';
 import {
-	Box,
 	Heading,
 	Accordion,
 	useDisclosure,
 	Button,
 	Divider,
 	Flex,
-	Image,
 	Text,
 	useColorModeValue,
 } from '@chakra-ui/react';
