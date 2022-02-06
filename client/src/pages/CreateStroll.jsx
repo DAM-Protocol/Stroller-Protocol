@@ -123,6 +123,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 								<Flex align='center' justify='center' mb={7}>
 									<DateRange
 										editableDateInputs={true}
+										minDate={new Date()}
 										onChange={(item) => setDateRange([item.selection])}
 										moveRangeOnFirstSelection={false}
 										ranges={dateRange}

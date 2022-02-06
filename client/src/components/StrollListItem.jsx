@@ -88,7 +88,7 @@ const StrollListItem = ({ totalAllowance = 0 }) => {
 								<Button mr={3} colorScheme='red' variant='outline'>
 									<BiMinus />
 								</Button>
-								<Button colorScheme='green'>
+								<Button colorScheme='green' size='sm'>
 									<BiPlus />
 								</Button>
 							</Td>
