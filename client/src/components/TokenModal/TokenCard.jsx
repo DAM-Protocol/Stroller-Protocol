@@ -21,6 +21,7 @@ const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 			<Flex align='center'>
 				<Image
 					boxSize='30px'
+					borderRadius='50%'
 					src={icon}
 					alt={symbol}
 					mr={5}
