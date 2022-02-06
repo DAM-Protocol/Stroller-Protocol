@@ -91,46 +91,48 @@ const SuperFluidProvider = ({ children }) => {
 						(sfToken) => sfToken.token.underlyingAddress
 					);
 
-					const tokenMetadata = await Web3Api.token.getTokenMetadata({
-						chain: 'mumbai',
-						addresses: underlyingTokens,
-					});
-					// create a lookup table for token metadata
-					const tokenMetadataLookup = {};
-					tokenMetadata.forEach(({ decimals, name, symbol, address }) => {
-						tokenMetadataLookup[address] = {
-							decimals,
-							name,
-							symbol,
-							address,
-						};
-					});
+					if (underlyingTokens.length > 0) {
+						const tokenMetadata = await Web3Api.token.getTokenMetadata({
+							chain: 'mumbai',
+							addresses: underlyingTokens,
+						});
+						// create a lookup table for token metadata
+						const tokenMetadataLookup = {};
+						tokenMetadata.forEach(({ decimals, name, symbol, address }) => {
+							tokenMetadataLookup[address] = {
+								decimals,
+								name,
+								symbol,
+								address,
+							};
+						});
 
-					// get supertoken data from the graph
-					const { data: userTokenData } = await getSuperTokenList({
-						variables: {
-							where: {
-								id_in: superTokens,
-							},
-						},
-					});
-
-					const tempTokenList = [];
-
-					// add the user supertokens to the list
-					const _userTokens = userTokenData.tokens;
-					_userTokens.forEach((token) => {
-						tempTokenList.push({
-							...token,
-							tk: {
-								...tokenMetadataLookup[token?.underlyingAddress],
-								...tokensLookup[token?.underlyingAddress],
-								...supportedTokens[token?.underlyingAddress],
-								address: token?.underlyingAddress,
+						// get supertoken data from the graph
+						const { data: userTokenData } = await getSuperTokenList({
+							variables: {
+								where: {
+									id_in: superTokens,
+								},
 							},
 						});
-					});
-					setUserTokenList(tempTokenList);
+
+						const tempTokenList = [];
+
+						// add the user supertokens to the list
+						const _userTokens = userTokenData.tokens;
+						_userTokens.forEach((token) => {
+							tempTokenList.push({
+								...token,
+								tk: {
+									...tokenMetadataLookup[token?.underlyingAddress],
+									...tokensLookup[token?.underlyingAddress],
+									...supportedTokens[token?.underlyingAddress],
+									address: token?.underlyingAddress,
+								},
+							});
+						});
+						setUserTokenList(tempTokenList);
+					}
 				}
 			}
 		})();
