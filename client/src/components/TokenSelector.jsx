@@ -107,7 +107,16 @@ const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 				onClose();
 			}}>
 			<Flex align='center'>
-				<Image boxSize='30px' src={icon} alt={symbol} mr={5} borderRaius='md' />
+				<Image
+					boxSize='30px'
+					src={icon}
+					alt={symbol}
+					mr={5}
+					borderRaius='md'
+					fallbackSrc={
+						'https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-ios7-circle-outline-512.png'
+					}
+				/>
 				<Text>{token}</Text>
 			</Flex>
 
