@@ -51,7 +51,7 @@ const TokenSelector = ({ isOpen, onClose, data, setData }) => {
 								<TokenCard
 									key={index}
 									icon={token.tk.logoURI}
-									token={token.name}
+									token={token.tk.name}
 									symbol={token.symbol}
 									data={data}
 									setData={setData}
@@ -69,7 +69,7 @@ const TokenSelector = ({ isOpen, onClose, data, setData }) => {
 							<TokenCard
 								key={index}
 								icon={token.tk.logoURI}
-								token={token.name}
+								token={token.tk.symbol}
 								symbol={token.symbol}
 								data={data}
 								setData={setData}
