@@ -14,6 +14,7 @@ import {
 	InputGroup,
 	Heading,
 	Badge,
+	useColorModeValue,
 } from '@chakra-ui/react';
 import { GrFormSearch } from 'react-icons/gr';
 // import { screen } from '@testing-library/react';
@@ -57,6 +58,9 @@ const TokenSelector = ({
 									icon={token.tk.logoURI}
 									token={token.name}
 									symbol={token.symbol}
+									data={data}
+									setData={setData}
+									onClose={onClose}
 								/>
 							))}
 						</Flex>
@@ -72,6 +76,9 @@ const TokenSelector = ({
 								icon={token.tk.logoURI}
 								token={token.name}
 								symbol={token.symbol}
+								data={data}
+								setData={setData}
+								onClose={onClose}
 							/>
 						))}
 					</Flex>
@@ -81,16 +88,24 @@ const TokenSelector = ({
 	);
 };
 
-const TokenCard = ({ icon, token, symbol }) => {
+const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 	return (
 		<Flex
+			_hover={{
+				bg: useColorModeValue('green.100', 'green.800'),
+				cursor: 'pointer',
+			}}
 			w='100%'
 			align={'center'}
 			justify={'space-between'}
 			borderRadius='md'
 			py={4}
 			px={10}
-			my={1}>
+			my={1}
+			onClick={() => {
+				setData({ ...data, token: symbol.toUpperCase() });
+				onClose();
+			}}>
 			<Flex align='center'>
 				<Image boxSize='30px' src={icon} alt={symbol} mr={5} borderRaius='md' />
 				<Text>{token}</Text>
