@@ -71,21 +71,6 @@ const TokenSelector = ({ isOpen, onClose, tokenList, data, setData }) => {
 								symbol={token.symbol}
 							/>
 						))}
-						<TokenCard
-							icon='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
-							token='Token'
-							symbol='TKN'
-						/>
-						<TokenCard
-							icon='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
-							token='Token'
-							symbol='TKN'
-						/>
-						<TokenCard
-							icon='https://s2.coinmarketcap.com/static/img/coins/200x200/4943.png'
-							token='Token'
-							symbol='TKN'
-						/>
 					</Flex>
 				</ModalBody>
 			</ModalContent>
