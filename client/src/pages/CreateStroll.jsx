@@ -1,20 +1,13 @@
 import TokenSelector from '../components/TokenSelector';
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { DateRange } from 'react-date-range';
+import { addDays } from 'date-fns';
 import {
-	Heading,
-	Divider,
 	Box,
 	useDisclosure,
 	Flex,
-	Stack,
-	Input,
-	Select,
 	FormControl,
 	FormLabel,
-	SliderMark,
-	SliderTrack,
-	SliderFilledTrack,
-	SliderThumb,
 	Button,
 	Modal,
 	ModalOverlay,
@@ -23,18 +16,17 @@ import {
 	ModalFooter,
 	ModalBody,
 	ModalCloseButton,
-	Slider,
-	CheckboxGroup,
-	Checkbox,
 	useCheckbox,
 	useCheckboxGroup,
 	Text,
 } from '@chakra-ui/react';
 import { SuperFluidContext } from '../context/SuperFluidContext';
+import 'react-date-range/dist/styles.css'; // main css file
+import 'react-date-range/dist/theme/default.css'; // theme css file
 
 const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 	const { defaultTokenList, userTokenList } = useContext(SuperFluidContext);
-	const { method, token, duration } = data;
+	const { token, duration } = data;
 	const {
 		isOpen: isTokenOpen,
 		onOpen: onTokenOpen,
@@ -46,6 +38,14 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 	});
 
 	useEffect(() => setData({ ...data, method: value }), [value]);
+
+	const [state, setState] = useState([
+		{
+			startDate: new Date(),
+			endDate: addDays(new Date(), 7),
+			key: 'selection',
+		},
+	]);
 
 	return (
 		<>
@@ -89,35 +89,13 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 									</CheckboxCard>
 								</Flex>
 								<FormLabel htmlFor='duration'>Duration</FormLabel>
-								<Slider
-									aria-label='duration select'
-									value={duration}
-									onChange={(val) => setData({ ...data, duration: val })}
-									my={8}>
-									<SliderMark value={25} mt='1' ml='-2.5' fontSize='sm'>
-										25%
-									</SliderMark>
-									<SliderMark value={50} mt='1' ml='-2.5' fontSize='sm'>
-										50%
-									</SliderMark>
-									<SliderMark value={75} mt='1' ml='-2.5' fontSize='sm'>
-										75%
-									</SliderMark>
-									<SliderMark
-										value={duration}
-										textAlign='center'
-										bg='green.500'
-										color='white'
-										mt='-10'
-										ml='-5'
-										w='12'>
-										{duration}%
-									</SliderMark>
-									<SliderTrack>
-										<SliderFilledTrack />
-									</SliderTrack>
-									<SliderThumb />
-								</Slider>
+								<DateRange
+									editableDateInputs={true}
+									onChange={(item) => setState([item.selection])}
+									moveRangeOnFirstSelection={false}
+									ranges={state}
+									color='#e3e3e3'
+								/>
 							</FormControl>
 						</Flex>
 					</ModalBody>
