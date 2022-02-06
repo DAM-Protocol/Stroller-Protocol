@@ -5,6 +5,8 @@ const supportedTokens = {
 		aToken: '0x639cB7b21ee2161DF9c882483C9D55c90c20Ca3e',
 		superToken: '0x06577b0B09e69148A45b866a0dE6643b6caC40Af',
 		decimals: 18,
+		logoURI:
+			'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png',
 	},
 	'0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e': {
 		symbol: 'USDC',
@@ -19,6 +21,8 @@ const supportedTokens = {
 		aToken: '0xF8744C0bD8C7adeA522d6DDE2298b17284A79D1b',
 		superToken: '0x3a27ff22eef2db03e91613ca4ba37e21ee21458a',
 		decimals: 8,
+		logoURI:
+			'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
 	},
 	'0x341d1f30e77D3FBfbD43D17183E2acb9dF25574E': {
 		symbol: 'AAVE',
@@ -43,4 +47,11 @@ const supportedTokens = {
 	},
 };
 const supportedTokenAddresses = Object.keys(supportedTokens);
-export { supportedTokens, supportedTokenAddresses };
+const supportedSuperTokenAddresses = Object.values(supportedTokens).map(
+	({ superToken }) => superToken
+);
+export {
+	supportedTokens,
+	supportedTokenAddresses,
+	supportedSuperTokenAddresses,
+};

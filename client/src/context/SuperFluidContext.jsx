@@ -1,13 +1,22 @@
-import { Framework, Query } from '@superfluid-finance/sdk-core';
-import { createContext, useState, useMemo } from 'react';
+import { Framework } from '@superfluid-finance/sdk-core';
+import { createContext, useState } from 'react';
 import { useMoralis, useMoralisWeb3Api } from 'react-moralis';
 import { ethers } from 'ethers';
 import { useEffect } from 'react';
 import useDefaultERC20Tokens from '../hooks/useDefaultERC20Tokens';
 import { useSfSubgraphLazyQuery } from '../hooks/useSfSubgraphQuery';
 import GET_SUPER_TOKENS from '../queries/getSuperTokens';
+import {
+	supportedTokens,
+	supportedTokenAddresses,
+	supportedSuperTokenAddresses,
+} from '../utils/supportedTokens';
 
-const SuperFluidContext = createContext({ sf: null });
+const SuperFluidContext = createContext({
+	sf: null,
+	defaultTokenList: [],
+	userTokenList: [],
+});
 
 const SuperFluidProvider = ({ children }) => {
 	const { web3, isWeb3Enabled } = useMoralis();
@@ -20,18 +29,17 @@ const SuperFluidProvider = ({ children }) => {
 			const mmProvider = new ethers.providers.Web3Provider(window.ethereum);
 
 			const _sf = await Framework.create({
-				networkName: 'matic',
+				networkName: 'mumbai',
 				provider: mmProvider,
 			});
-			window.sf = _sf;
 			setSf(_sf);
 		})();
 	}, [isWeb3Enabled, web3]);
 
-	const { tokensLookup, tokenAddresses } = useDefaultERC20Tokens();
+	const { tokensLookup } = useDefaultERC20Tokens();
+
 	const [defaultTokenList, setDefaultTokenList] = useState([]);
 	const [userTokenList, setUserTokenList] = useState([]);
-	window.defaultTokenList = defaultTokenList;
 
 	const [getSuperTokenList] = useSfSubgraphLazyQuery(GET_SUPER_TOKENS);
 
@@ -40,19 +48,21 @@ const SuperFluidProvider = ({ children }) => {
 			const { data: defaultSuperTokenData } = await getSuperTokenList({
 				variables: {
 					where: {
-						underlyingAddress_in: tokenAddresses,
+						id_in: supportedSuperTokenAddresses,
 						underlyingAddress_not: '0x',
 					},
 				},
 			});
-			if (defaultSuperTokenData?.tokens) {
+			if (defaultSuperTokenData.tokens) {
 				const tempTokenList = [];
 
-				defaultSuperTokenData.tokens.forEach((token) => {
+				Object.values(defaultSuperTokenData.tokens).forEach((token) => {
+					console.log(token);
 					tempTokenList.push({
 						...token,
 						tk: {
-							...tokensLookup[token?.underlyingAddress],
+							...tokensLookup[token.underlyingAddress],
+							...supportedTokens[token?.underlyingAddress],
 							address: token?.underlyingAddress,
 						},
 					});
@@ -60,16 +70,15 @@ const SuperFluidProvider = ({ children }) => {
 				setDefaultTokenList(tempTokenList);
 			}
 		})();
-	}, [getSuperTokenList, tokenAddresses, tokensLookup]);
+	}, [getSuperTokenList, tokensLookup]);
 
-	const [getUserSuperTokenList] = useSfSubgraphLazyQuery(GET_SUPER_TOKENS);
 	const Web3Api = useMoralisWeb3Api();
 
 	useEffect(() => {
 		(async () => {
 			if (sf) {
 				let pageResult = await sf.query?.listUserInteractedSuperTokens({
-					account: '0x452181dAe31Cf9f42189df71eC64298993BEe6d3'.toLowerCase(),
+					account: '0x917A19E71a2811504C4f64aB33c132063B5772a5'.toLowerCase(),
 				});
 				if (pageResult.data) {
 					const data = pageResult.data;
@@ -80,7 +89,7 @@ const SuperFluidProvider = ({ children }) => {
 					);
 
 					const tokenMetadata = await Web3Api.token.getTokenMetadata({
-						chain: 'matic',
+						chain: 'mumbai',
 						addresses: underlyingTokens,
 					});
 					// create a lookup table for token metadata
@@ -95,7 +104,7 @@ const SuperFluidProvider = ({ children }) => {
 					});
 
 					// get supertoken data from the graph
-					const { data: userTokenData } = await getUserSuperTokenList({
+					const { data: userTokenData } = await getSuperTokenList({
 						variables: {
 							where: {
 								id_in: superTokens,
@@ -113,6 +122,7 @@ const SuperFluidProvider = ({ children }) => {
 							tk: {
 								...tokenMetadataLookup[token?.underlyingAddress],
 								...tokensLookup[token?.underlyingAddress],
+								...supportedTokens[token?.underlyingAddress],
 								address: token?.underlyingAddress,
 							},
 						});
@@ -122,6 +132,10 @@ const SuperFluidProvider = ({ children }) => {
 			}
 		})();
 	}, [sf]);
+
+	useEffect(() => {
+		console.log(defaultTokenList, userTokenList);
+	}, [defaultTokenList, userTokenList]);
 
 	return (
 		<SuperFluidContext.Provider

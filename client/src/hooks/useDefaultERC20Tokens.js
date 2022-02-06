@@ -19,7 +19,7 @@ const useDefaultERC20Tokens = () => {
 	);
 	const fetchDefaultTokens = useCallback(async () => {
 		fetch(
-			'https://raw.githubusercontent.com/sushiswap/default-token-list/master/tokens/matic.json'
+			'https://raw.githubusercontent.com/sushiswap/default-token-list/master/tokens/matic-testnet.json'
 		)
 			.then((res) => res.json())
 			.then((data) => {

@@ -3,22 +3,22 @@ import {
 	InMemoryCache,
 	useLazyQuery,
 	useQuery,
-} from "@apollo/client";
+} from '@apollo/client';
 
 const defaultOptions = {
 	watchQuery: {
 		// fetchPolicy: "no-cache",
-		fetchPolicy: "network-only",
-		errorPolicy: "ignore",
+		fetchPolicy: 'network-only',
+		errorPolicy: 'ignore',
 	},
 	query: {
-		fetchPolicy: "network-only",
-		errorPolicy: "all",
+		fetchPolicy: 'network-only',
+		errorPolicy: 'all',
 	},
 };
 
 const superfluidSubgraphClient = new ApolloClient({
-	uri: "https://api.thegraph.com/subgraphs/name/superfluid-finance/protocol-v1-matic",
+	uri: 'https://api.thegraph.com/subgraphs/name/superfluid-finance/protocol-v1-mumbai',
 	cache: new InMemoryCache(),
 	defaultOptions: defaultOptions,
 });
