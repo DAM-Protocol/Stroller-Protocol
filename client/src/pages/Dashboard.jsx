@@ -18,8 +18,8 @@ import { SuperFluidContext } from '../context/SuperFluidContext';
 
 const Dashboard = () => {
 	const [createStrollData, setCreateStrollData] = useState({
-		nickname: '',
 		token: '',
+		method: [],
 		duration: 0,
 	});
 	const { isOpen, onOpen, onClose } = useDisclosure();
@@ -28,7 +28,7 @@ const Dashboard = () => {
 	return (
 		<Page>
 			<Button
-				colorScheme='blue'
+				colorScheme='green'
 				onClick={onOpen}
 				position='absolute'
 				top={20}
@@ -46,7 +46,7 @@ const Dashboard = () => {
 					Dashboard
 				</Heading>
 				<Divider my={5} />
-				<Accordion allowToggle colorScheme='blue'>
+				<Accordion allowToggle colorScheme='green'>
 					<Flex
 						align='center'
 						justify='space-around'

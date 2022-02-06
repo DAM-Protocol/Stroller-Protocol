@@ -16,21 +16,11 @@ import {
 	Text,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useMoralisDapp } from '../../../context/MoralisDappProvider';
 
 const UserMenu = () => {
 	const { user, authenticate, logout } = useMoralis();
-	const { chainId } = useMoralisDapp();
-
 	return user ? (
 		<Menu>
-			<Button
-				size='md'
-				variant='outline'
-				colorScheme='red'
-				onClick={() => authenticate()}>
-				{chainId === '0x80001' ? <>Mumbai Testnet</> : 'Wrong Network'}
-			</Button>
 			<MenuButton
 				as={Button}
 				rounded={'full'}
@@ -64,13 +54,6 @@ const UserMenu = () => {
 		</Menu>
 	) : (
 		<>
-			<Button
-				size='md'
-				variant='outline'
-				colorScheme='red'
-				onClick={() => authenticate()}>
-				Wrong Network
-			</Button>
 			<Button
 				size='md'
 				variant='outline'

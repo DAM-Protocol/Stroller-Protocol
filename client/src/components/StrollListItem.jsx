@@ -74,7 +74,7 @@ const StrollListItem = () => {
 								<Button mr={3}>
 									<BiMinus />
 								</Button>
-								<Button colorScheme='blue'>
+								<Button colorScheme='green'>
 									<BiPlus />
 								</Button>
 							</Td>
