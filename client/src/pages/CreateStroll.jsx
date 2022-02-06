@@ -40,7 +40,7 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 
 	useEffect(() => setData({ ...data, method: value }), [value]);
 
-	const [state, setState] = useState([
+	const [dateRange, setDateRange] = useState([
 		{
 			startDate: new Date(),
 			endDate: addDays(new Date(), 7),
@@ -74,16 +74,26 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 					<ModalBody>
 						<Flex align={'center'} justify={'center'}>
 							<FormControl width='90%'>
-								<FormLabel htmlFor='token'>Token</FormLabel>
+								<FormLabel
+									htmlFor='token'
+									textTransform='uppercase'
+									fontSize='sm'
+									fontWeight='bold'
+									color='gray.300'>
+									Token
+								</FormLabel>
 								<Flex align='center' justify='space-between' mb={7}>
 									<Text
-										p={2}
-										w='70%'
+										py={2}
+										px={8}
+										w='30ch'
 										bg={useColorModeValue('gray.100', 'gray.600')}
 										borderRadius='md'>
 										{token ? token : 'Select a Token'}
 									</Text>
-									<Button onClick={onTokenOpen}>Select Token</Button>
+									<Button onClick={onTokenOpen}>
+										{token ? 'Change Token' : 'Select a Token'}
+									</Button>
 								</Flex>
 								<FormLabel
 									htmlFor='token'
@@ -102,13 +112,22 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 										ERC20 Tokens
 									</CheckboxCard>
 								</Flex>
-								<FormLabel htmlFor='duration'>Duration</FormLabel>
-								<DateRange
-									editableDateInputs={true}
-									onChange={(item) => setState([item.selection])}
-									moveRangeOnFirstSelection={false}
-									ranges={state}
-								/>
+								<FormLabel
+									htmlFor='duration'
+									textTransform='uppercase'
+									fontSize='sm'
+									fontWeight='bold'
+									color='gray.300'>
+									Duration
+								</FormLabel>
+								<Flex align='center' justify='center' mb={7}>
+									<DateRange
+										editableDateInputs={true}
+										onChange={(item) => setDateRange([item.selection])}
+										moveRangeOnFirstSelection={false}
+										ranges={dateRange}
+									/>
+								</Flex>
 							</FormControl>
 						</Flex>
 					</ModalBody>
