@@ -19,6 +19,7 @@ import {
 	useCheckbox,
 	useCheckboxGroup,
 	Text,
+	useColorModeValue,
 } from '@chakra-ui/react';
 import { SuperFluidContext } from '../context/SuperFluidContext';
 import 'react-date-range/dist/styles.css'; // main css file
@@ -74,18 +75,31 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 						<Flex align={'center'} justify={'center'}>
 							<FormControl width='90%'>
 								<FormLabel htmlFor='token'>Token</FormLabel>
-								<Flex align='center'>
-									<Text>{token ? token : 'Select a Token'}</Text>
+								<Flex align='center' justify='space-between' mb={7}>
+									<Text
+										p={2}
+										w='70%'
+										bg={useColorModeValue('gray.100', 'gray.600')}
+										borderRadius='md'>
+										{token ? token : 'Select a Token'}
+									</Text>
 									<Button onClick={onTokenOpen}>Select Token</Button>
 								</Flex>
-								<FormLabel htmlFor='token'>Token Investment Methods</FormLabel>
-								<Flex align='center' justify='space-around'>
+								<FormLabel
+									htmlFor='token'
+									textTransform='uppercase'
+									fontSize='sm'
+									fontWeight='bold'
+									color='gray.300'>
+									Investment Methods
+								</FormLabel>
+								<Flex align='center' justify='space-evenly' mb={7}>
 									<CheckboxCard {...getCheckboxProps({ value: 'AAVE Tokens' })}>
 										AAVE Tokens
 									</CheckboxCard>
 									<CheckboxCard
 										{...getCheckboxProps({ value: 'ERC20 Tokens' })}>
-										ERC20) Tokens
+										ERC20 Tokens
 									</CheckboxCard>
 								</Flex>
 								<FormLabel htmlFor='duration'>Duration</FormLabel>
@@ -94,7 +108,6 @@ const CreateStroll = ({ isOpen, onClose, data, setData }) => {
 									onChange={(item) => setState([item.selection])}
 									moveRangeOnFirstSelection={false}
 									ranges={state}
-									color='#e3e3e3'
 								/>
 							</FormControl>
 						</Flex>
