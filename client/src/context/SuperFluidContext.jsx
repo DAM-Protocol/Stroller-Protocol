@@ -112,6 +112,7 @@ const SuperFluidProvider = ({ children }) => {
 							...token,
 							tk: {
 								...tokenMetadataLookup[token?.underlyingAddress],
+								...tokensLookup[token?.underlyingAddress],
 								address: token?.underlyingAddress,
 							},
 						});
