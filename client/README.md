@@ -1,70 +1,30 @@
-# Getting Started with Create React App
+# `Stroller Protocol`
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![](./docs/images/strollerprotocol.png)
 
-## Available Scripts
+## Need for a `Stroller`
 
-In the project directory, you can run:
+Currently users have no option other than wrapping surplus ERC20 tokens to keep the streams running. These tokens do not earn interest since Superfluid protocol is relatively new and DeFi is yet to be introduced on streams.
 
-### `npm start`
+Stroller Protocol allows users to earn yield on ERC20 tokens without the compulsion of having to wrap them to Super Tokens. This is enabled by creating Strollers which top-up the streams with just enough Super tokens to keep the streams running without any penalties.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+![](https://stream.mux.com/i224Rw0001RO00IuZAHgnsr14QiTdXtpkr4tn5xXcTJu6E/high.mp4)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Use Case
 
-### `npm test`
+Users can invest their tokens in other DeFi protocols like `AAVE`, `Harvest`, etc. and approve the receipt tokens for our contracts. For example, Alex invests USDT in `AAVE` and gets `amUSDT` in return. She approves `amUSDT` for our contracts and creates a `stroller`. Whenever her USDTx stream will have low balance to keep the stream running for a threshold, these `amUSDT` tokens will be converted to `USDT` and transferred to Alex as `USDTx`.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+![](./docs/images/flowdiagram.png)
 
-### `npm run build`
+Using the Top-Up service provided by Stroller Protocol, users can now be tension free about their streams running dry. Approve, create a stroller and relax. The protocol handles the headaches for you.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## How It's Made
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+The Stroller Protocol is built on `SuperFluid`, `ChainLink` and `Moralis`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Users approve their invested tokens and create a stroller.
+ChainLink Keepers keep checking for users' Super Token balances. If the balance can not keep the stream running for a certain threshold of time, the invested tokens are liquidated and wrapped to Super Tokens and sent to the user. This method is called Top Up.
 
-### `npm run eject`
+📉 Low super-token balance => sell some investments => keep stream running 🤑
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The events are indexed by moralis and displayed on the frontend. We use Moralis triggers to mutate data from the Event table to a Stroller table. We also use The Graph for querying all the stream related data.

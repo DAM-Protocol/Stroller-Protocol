@@ -38,7 +38,15 @@ const Dashboard = () => {
 				{/* <Heading textAlign={'center'}>Create A Stroller First</Heading> */}
 				<Accordion allowMultiple colorScheme='green'>
 					<AccordionHeaders />
-					<StrollListItem
+					{Object.keys(defaultTokenLookup).map((tokenAddress) => {
+						return (
+							<StrollListItem
+								key={tokenAddress}
+								tokenData={defaultTokenLookup[tokenAddress]}
+							/>
+						);
+					})}
+					{/* <StrollListItem
 						// isLoading
 						tokenData={
 							defaultTokenLookup['0x3a27ff22eef2db03e91613ca4ba37e21ee21458a']
@@ -49,7 +57,7 @@ const Dashboard = () => {
 						tokenData={
 							defaultTokenLookup['0x86beec8a6e0e0ded142998ed8ddcbce118f91864']
 						}
-					/>
+					/> */}
 				</Accordion>
 			</Flex>
 		</Page>
