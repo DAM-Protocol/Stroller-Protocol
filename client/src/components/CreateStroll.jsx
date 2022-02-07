@@ -148,7 +148,7 @@ const CreateStroll = ({ isOpen, onClose }) => {
 				size='xl'>
 				<ModalOverlay />
 				<ModalContent>
-					<ModalHeader>Create a Stroll</ModalHeader>
+					<ModalHeader>Create a Stroller</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
 						<CreateForm
@@ -162,7 +162,7 @@ const CreateStroll = ({ isOpen, onClose }) => {
 							Close
 						</Button>
 						<Button onClick={handleCreateStroll} colorScheme='green'>
-							Create the Stroll
+							Create the Stroller
 						</Button>
 					</ModalFooter>
 				</ModalContent>

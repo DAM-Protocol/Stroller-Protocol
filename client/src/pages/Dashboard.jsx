@@ -27,7 +27,7 @@ const Dashboard = () => {
 				position='absolute'
 				top={20}
 				right={5}>
-				Create a Stroll
+				Create a Stroller
 			</Button>
 			<CreateStroll isOpen={isOpen} onClose={onClose} />
 			<Flex flexDirection='column'>
