@@ -1,43 +1,30 @@
-# Advanced Sample Hardhat Project
+# `Stroller Protocol`
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+![](./docs/images/strollerprotocol.png)
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
+## Need for a `Stroller`
 
-Try running some of the following tasks:
+Currently users have no option other than wrapping surplus ERC20 tokens to keep the streams running. These tokens do not earn interest since Superfluid protocol is relatively new and DeFi is yet to be introduced on streams.
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.js
-node scripts/deploy.js
-npx eslint '**/*.js'
-npx eslint '**/*.js' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
-```
+Stroller Protocol allows users to earn yield on ERC20 tokens without the compulsion of having to wrap them to Super Tokens. This is enabled by creating Strollers which top-up the streams with just enough Super tokens to keep the streams running without any penalties.
 
-# Etherscan verification
+![](https://stream.mux.com/i224Rw0001RO00IuZAHgnsr14QiTdXtpkr4tn5xXcTJu6E/high.mp4)
 
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
+## Use Case
 
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
+Users can invest their tokens in other DeFi protocols like `AAVE`, `Harvest`, etc. and approve the receipt tokens for our contracts. For example, Alex invests USDT in `AAVE` and gets `amUSDT` in return. She approves `amUSDT` for our contracts and creates a `stroller`. Whenever her USDTx stream will have low balance to keep the stream running for a threshold, these `amUSDT` tokens will be converted to `USDT` and transferred to Alex as `USDTx`.
 
-```shell
-hardhat run --network ropsten scripts/deploy.js
-```
+![](./docs/images/flowdiagram.png)
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+Using the Top-Up service provided by Stroller Protocol, users can now be tension free about their streams running dry. Approve, create a stroller and relax. The protocol handles the headaches for you.
 
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
-```
-# Auto-Upgrade
+## How It's Made
+
+The Stroller Protocol is built on `SuperFluid`, `ChainLink` and `Moralis`.
+
+Users approve their invested tokens and create a stroller.
+ChainLink Keepers keep checking for users' Super Token balances. If the balance can not keep the stream running for a certain threshold of time, the invested tokens are liquidated and wrapped to Super Tokens and sent to the user. This method is called Top Up.
+
+📉 Low super-token balance => sell some investments => keep stream running 🤑
+
+The events are indexed by moralis and displayed on the frontend. We use Moralis triggers to mutate data from the Event table to a Stroller table. We also use The Graph for querying all the stream related data.
