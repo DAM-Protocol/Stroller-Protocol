@@ -1,6 +1,14 @@
 import { Flex, Image, Text, Badge, useColorModeValue } from '@chakra-ui/react';
 
-const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
+const TokenCard = ({
+	icon,
+	token,
+	symbol,
+	data,
+	setData,
+	onClose,
+	address,
+}) => {
 	return (
 		<Flex
 			_hover={{
@@ -15,7 +23,7 @@ const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 			px={10}
 			my={1}
 			onClick={() => {
-				setData({ ...data, token: symbol, icon });
+				setData({ ...data, token: symbol, icon, tokenAddress: address });
 				onClose();
 			}}>
 			<Flex align='center'>
@@ -25,7 +33,6 @@ const TokenCard = ({ icon, token, symbol, data, setData, onClose }) => {
 					src={icon}
 					alt={symbol}
 					mr={5}
-					borderRaius='md'
 					fallbackSrc={
 						'https://cdn4.iconfinder.com/data/icons/ionicons/512/icon-ios7-circle-outline-512.png'
 					}

@@ -42,6 +42,11 @@ const Dashboard = () => {
 							defaultTokenLookup['0x3a27ff22eef2db03e91613ca4ba37e21ee21458a']
 						}
 					/>
+					{/* <StrollListItem
+						tokenData={
+							defaultTokenLookup['0x3a27ff22eef2db03e91613ca4ba37e21ee21458a']
+						}
+					/> */}
 					{/* <StrollListItem isLoading /> */}
 				</Accordion>
 			</Flex>

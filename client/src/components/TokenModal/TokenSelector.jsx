@@ -53,6 +53,7 @@ const TokenSelector = ({ isOpen, onClose, data, setData }) => {
 									icon={token.tk.logoURI}
 									token={token.tk.name}
 									symbol={token.symbol}
+									address={token.id}
 									data={data}
 									setData={setData}
 									onClose={onClose}
@@ -71,6 +72,7 @@ const TokenSelector = ({ isOpen, onClose, data, setData }) => {
 								icon={token.tk.logoURI}
 								token={token.tk.symbol}
 								symbol={token.symbol}
+								address={token.id}
 								data={data}
 								setData={setData}
 								onClose={onClose}

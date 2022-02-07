@@ -9,21 +9,14 @@ import {
 	useColorModeValue,
 	useDisclosure,
 } from '@chakra-ui/react';
-import { DateRange } from 'react-date-range';
-import { addDays } from 'date-fns';
+
+import { Calendar } from 'react-date-range';
 import CheckboxCard from './CheckboxCard';
 import 'react-date-range/dist/styles.css'; // main css file
 import 'react-date-range/dist/theme/default.css'; // theme css file
 
 const CreateForm = ({ data, setData, onTokenOpen }) => {
 	const { token } = data;
-	const [dateRange, setDateRange] = useState([
-		{
-			startDate: new Date(),
-			endDate: addDays(new Date(), 7),
-			key: 'selection',
-		},
-	]);
 
 	const { value, getCheckboxProps } = useCheckboxGroup({
 		defaultValue: ['AAVE Tokens'],
@@ -93,18 +86,13 @@ const CreateForm = ({ data, setData, onTokenOpen }) => {
 					fontSize='sm'
 					fontWeight='bold'
 					color='gray.300'>
-					Duration
+					Stream End Date
 				</FormLabel>
 				<Flex align='center' justify='center' mb={7}>
-					<DateRange
-						editableDateInputs={true}
+					<Calendar
 						minDate={new Date()}
-						onChange={(item) => {
-							if (item.selection.startDate < Date.now())
-								setDateRange([item.selection]);
-						}}
-						moveRangeOnFirstSelection={false}
-						ranges={dateRange}
+						date={data.endDate || new Date()}
+						onChange={(date) => setData({ ...data, endDate: date })}
 					/>
 				</Flex>
 			</FormControl>

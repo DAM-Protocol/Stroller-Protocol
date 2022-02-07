@@ -1,7 +1,6 @@
 import { Framework } from '@superfluid-finance/sdk-core';
 import { createContext, useState, useMemo } from 'react';
 import { useMoralis, useMoralisWeb3Api } from 'react-moralis';
-import { ethers } from 'ethers';
 import { useEffect } from 'react';
 import useDefaultERC20Tokens from '../hooks/useDefaultERC20Tokens';
 import { useSfSubgraphLazyQuery } from '../hooks/useSfSubgraphQuery';
@@ -16,10 +15,12 @@ const SuperFluidContext = createContext({
 	sf: null,
 	defaultTokenList: [],
 	userTokenList: [],
+	defaultTokenLookup: {},
+	sfProvider: {},
 });
 
 const SuperFluidProvider = ({ children }) => {
-	const { web3, isWeb3Enabled } = useMoralis();
+	const { web3, isWeb3Enabled, Moralis } = useMoralis();
 	window.web3 = web3;
 
 	const [sf, setSf] = useState(null);
@@ -27,7 +28,7 @@ const SuperFluidProvider = ({ children }) => {
 	useEffect(() => {
 		(async () => {
 			if (!isWeb3Enabled) return null;
-
+			const ethers = Moralis.web3Library;
 			const mmProvider = new ethers.providers.Web3Provider(window.ethereum);
 
 			const _sf = await Framework.create({
