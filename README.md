@@ -1,6 +1,6 @@
 # `Stroller Protocol`
 
-![](./docs/images/strollerprotocol.png)
+![](/client/docs/images/strollerprotocol.png)
 
 ## Need for a `Stroller`
 
@@ -14,7 +14,7 @@ Stroller Protocol allows users to earn yield on ERC20 tokens without the compuls
 
 Users can invest their tokens in other DeFi protocols like `AAVE`, `Harvest`, etc. and approve the receipt tokens for our contracts. For example, Alex invests USDT in `AAVE` and gets `amUSDT` in return. She approves `amUSDT` for our contracts and creates a `stroller`. Whenever her USDTx stream will have low balance to keep the stream running for a threshold, these `amUSDT` tokens will be converted to `USDT` and transferred to Alex as `USDTx`.
 
-![](./docs/images/flowdiagram.png)
+![](/client/docs/images/flowdiagram.png)
 
 Using the Top-Up service provided by Stroller Protocol, users can now be tension free about their streams running dry. Approve, create a stroller and relax. The protocol handles the headaches for you.
 
