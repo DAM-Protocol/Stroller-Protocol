@@ -18,7 +18,8 @@ const Landing = () => {
 					Unlock the potential of SuperTokens
 				</Text>
 				<Text mb={10}>
-					Stroll is a protocol that provides automatic Top-Ups for Super Tokens
+					Stroller is a protocol that provides automatic Top-Ups for Super
+					Tokens
 				</Text>
 				<NavLink to='/dashboard'>
 					<Button colorScheme='green'>Go to Dashboard</Button>
@@ -26,7 +27,7 @@ const Landing = () => {
 				<Divider></Divider>
 				<Box height={'md'} width='xl'>
 					<iframe
-						title='Stroll Protocol - Deck'
+						title='Stroller Protocol - Deck'
 						loading='lazy'
 						style={{
 							width: '100%',

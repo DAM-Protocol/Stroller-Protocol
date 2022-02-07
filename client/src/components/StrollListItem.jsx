@@ -139,9 +139,12 @@ const StrollListItem = ({ tokenData, totalAllowance = 0, isLoading }) => {
 							<TableRowSkeleton />
 						) : (
 							<Tr>
-								<Td textAlign='center'>amUSDT</Td>
+								<Td textAlign='center'>am{tokenData.tk.symbol}</Td>
+								{/* top up expiry */}
 								<Td textAlign='center'>
-									{new Date(1646784118 * 1000).toLocaleDateString()}
+									{allowances.toString() !== '0'
+										? new Date(1646784118 * 1000).toLocaleDateString()
+										: '-'}
 								</Td>
 								{/* balance */}
 								<Td textAlign='center'>
