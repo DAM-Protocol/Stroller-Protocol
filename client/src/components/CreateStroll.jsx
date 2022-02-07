@@ -44,10 +44,6 @@ const CreateStroll = ({ isOpen, onClose }) => {
 		console.log(defaultTokenLookup[createStrollData?.tokenAddress]);
 
 		// get approval of ERC20 from user using ethers
-		console.log(
-			'time : ',
-			new Date(createStrollData?.endDate).getTime() / 1000
-		);
 
 		try {
 			let readOptions = {

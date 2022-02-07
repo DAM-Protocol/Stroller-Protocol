@@ -21,7 +21,7 @@ const supportedTokens = {
 		address: '0xbd21a10f619be90d6066c941b04e340841f1f989',
 		aToken: '0xf8744c0bd8c7adea522d6dde2298b17284a79d1b',
 		superToken: '0x3a27ff22eef2db03e91613ca4ba37e21ee21458a',
-		decimals: 8,
+		decimals: 6,
 		logoURI:
 			'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
 	},
