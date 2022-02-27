@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity ^0.8.4;
 
-import {ILendingPoolAddressesProvider, ILendingPool, IAToken, IProtocolDataProvider} from "../interfaces/AaveInterfaces.sol";
+import { ILendingPoolAddressesProvider, ILendingPool, IAToken, IProtocolDataProvider } from "./interfaces/AaveInterfaces.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrollResolver.sol";
@@ -10,7 +10,7 @@ import "hardhat/console.sol";
 
 contract AaveStrollOut is IStrategy {
     using SafeERC20 for IERC20Mod;
-    using StrollHelper for ISuperToken;
+    // using StrollHelper for ISuperToken;
 
     // For Polygon mainnet
     // ILendingPoolAddressesProvider
@@ -50,11 +50,13 @@ contract AaveStrollOut is IStrategy {
             "Incorrect supertoken"
         );
 
-        (bool reqTopUp, uint256 idealWithdrawAmount) = _superToken.requireTopUp(
-            _user,
-            strollResolver.lowerLimit(),
-            strollResolver.upperLimit()
+        (bool reqTopUp, uint256 idealWithdrawAmount) = strollHelper.requireTopUp(
+            _superToken,
+            _user
         );
+
+        // Topup is necessary only if liquidity will last for less than lowerLimit
+        require(reqTopUp, "TopUp not required");
 
         // Get the allowance given by the user to this contract
         uint256 totalWithdrawable = IERC20Mod(_aToken).allowance(
@@ -62,8 +64,6 @@ contract AaveStrollOut is IStrategy {
             address(this)
         );
 
-        // Topup is necessary only if liquidity will last for less than lowerLimit
-        require(reqTopUp, "TopUp not required");
         require(totalWithdrawable > 0, "Not enough allowance");
 
         address lendingPool = LENDINGPOOL_ADDRESSES_PROVIDER.getLendingPool();
