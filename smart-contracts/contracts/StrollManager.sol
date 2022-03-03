@@ -258,7 +258,8 @@ contract Registry is Ownable {
         topup.strategy.strategyAddress.topUp(
             topup.user,
             topup.strategy.token,
-            ISuperToken(topup.superToken)
+            ISuperToken(topup.superToken),
+            topUpAmount
         );
         emit PerformedTopUp(_index);
     }
