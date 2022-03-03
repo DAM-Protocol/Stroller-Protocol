@@ -24,10 +24,12 @@ contract Registry is Ownable {
 
     // Modify this struct later to support multiple strategies in the future
     struct TopUp {
-        address owner;
+        address user;
         ISuperToken superToken;
         Strategy strategy;
-        uint256 time;
+        uint64 time;
+        uint64 lowerLimit;
+        uint64 upperLimit;
     }
 
     TopUp[] private topUps;
@@ -81,7 +83,9 @@ contract Registry is Ownable {
         address _superToken,
         address _strategy,
         address _liquidityToken,
-        uint256 _time
+        uint64 _time,
+        uint64 _lowerLimit,
+        uint64 _upperLimit
     ) external {
         require(
             _superToken != address(0) &&
@@ -102,7 +106,9 @@ contract Registry is Ownable {
             msg.sender,
             ISuperToken(_superToken),
             Strategy(IStrategy(_strategy), _liquidityToken),
-            _time
+            _time,
+            _lowerLimit,
+            _upperLimit
         );
 
         if (deletedTopUps.length > 0) {
@@ -132,7 +138,9 @@ contract Registry is Ownable {
             address,
             ISuperToken,
             Strategy memory,
-            uint256
+            uint64,
+            uint64,
+            uint64
         )
     {
         uint256 index = getTopUpIndex(_user, _superToken);
@@ -154,43 +162,87 @@ contract Registry is Ownable {
             address,
             ISuperToken,
             Strategy memory,
-            uint256
+            uint64,
+            uint64,
+            uint64
         )
     {
         require(_index < topUps.length, "Index out of bounds");
+        TopUp memory topup = topUps[_index];
+
         return (
-            topUps[_index].owner,
-            topUps[_index].superToken,
-            topUps[_index].strategy,
-            topUps[_index].time
+            topup.user,
+            topup.superToken,
+            topup.strategy,
+            topup.time,
+            topup.lowerLimit,
+            topup.upperLimit
         );
     }
 
-    function getTotalTopUps() public view returns (uint256) {
-        return topUps.length;
-    }
+    // function getTotalTopUps() public view returns (uint256) {
+    //     return topUps.length;
+    // }
 
-    function requireTopUp(ISuperToken _superToken, address _user)
-        public
-        view
-        returns (bool, uint256)
-    {
-        uint128 lowerLimit = strollResolver.lowerLimit();
-        uint128 upperLimit = strollResolver.upperLimit();
-        int96 flowRate = CFA_V1.getNetFlow(_superToken, _user);
+    // function requireTopUp(ISuperToken _superToken, address _user)
+    //     public
+    //     view
+    //     returns (bool, uint256)
+    // {
+    //     uint128 lowerLimit = strollResolver.lowerLimit(); // TODO: flexible timing
+    //     uint128 upperLimit = strollResolver.upperLimit();
+    //     int96 flowRate = CFA_V1.getNetFlow(_superToken, _user);
+
+    //     if (flowRate < 0) {
+    //         uint256 balance = _superToken.balanceOf(_user);
+    //         uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
+
+    //         if (balance <= (positiveFlowRate * lowerLimit)) {
+    //             uint256 topUpAmount = positiveFlowRate * upperLimit;
+    //             return (
+    //                 true,
+    //                 topUpAmount /
+    //                     10 **
+    //                         (18 -
+    //                             IERC20Mod(_superToken.getUnderlyingToken())
+    //                                 .decimals())
+    //             );
+    //         }
+    //     }
+
+    //     return (false, 0);
+    // }
+
+    function checkTopUp(uint256 _index) public view returns (bool, uint256) {
+        if (_index >= topUps.length) return (false, 0);
+
+        TopUp memory topup = topUps[_index];
+
+        if (
+            topup.user == address(0) || // Task exists and has a valid user
+            topup.time > block.timestamp || // Task exists and current time is before task end time
+            IERC20(topup.strategy.token).allowance(
+                topup.user,
+                address(topup.strategy.strategyAddress) // contract is allowed to spend
+            ) ==
+            0 ||
+            IERC20(topup.strategy.token).balanceOf(topup.user) == 0 // check user balance
+        ) return (false, 0);
+
+        int96 flowRate = CFA_V1.getNetFlow(topup.superToken, topup.user);
 
         if (flowRate < 0) {
-            uint256 balance = _superToken.balanceOf(_user);
+            uint256 superBalance = topup.superToken.balanceOf(topup.user);
             uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
 
-            if (balance <= (positiveFlowRate * lowerLimit)) {
-                uint256 topUpAmount = positiveFlowRate * upperLimit;
+            if (superBalance <= (positiveFlowRate * topup.lowerLimit)) {
+                uint256 topUpAmount = positiveFlowRate * topup.upperLimit;
                 return (
                     true,
                     topUpAmount /
                         10 **
                             (18 -
-                                IERC20Mod(_superToken.getUnderlyingToken())
+                                IERC20Mod(topup.superToken.getUnderlyingToken())
                                     .decimals())
                 );
             }
@@ -199,35 +251,12 @@ contract Registry is Ownable {
         return (false, 0);
     }
 
-    function checkTopUp(uint256 _index) public view returns (bool) {
-        if (_index >= topUps.length) return false;
-
-        TopUp memory topup = topUps[_index];
-        if (
-            topup.owner == address(0) ||
-            topup.time < block.timestamp ||
-            IERC20(topup.strategy.token).allowance(
-                topup.owner,
-                address(topup.strategy.strategyAddress)
-            ) ==
-            0 ||
-            IERC20(topup.strategy.token).balanceOf(topup.owner) == 0
-        ) return false;
-
-        (bool check, ) = requireTopUp(topup.superToken, topup.owner);
-
-        return check;
-    }
-
     function performTopUp(uint256 _index) public {
         TopUp memory topup = topUps[_index];
-        (bool check, uint256 topUpAmount) = requireTopUp(
-            topup.superToken,
-            topup.owner
-        );
+        (bool check, uint256 topUpAmount) = checkTopUp(_index);
         require(check, "TopUp check failed");
         topup.strategy.strategyAddress.topUp(
-            topup.owner,
+            topup.user,
             topup.strategy.token,
             ISuperToken(topup.superToken)
         );
@@ -238,20 +267,20 @@ contract Registry is Ownable {
         require(_index < topUps.length, "Index out of bounds");
         TopUp memory topup = topUps[_index];
         require(
-            topup.owner == msg.sender || topup.time < block.timestamp,
+            topup.user == msg.sender || topup.time < block.timestamp,
             "Can't delete TopUp"
         );
         require(
-            topUpMap[topup.owner][address(topup.superToken)] > 0,
+            topUpMap[topup.user][address(topup.superToken)] > 0,
             "TopUp not found"
         );
-        topUpMap[topup.owner][address(topup.superToken)] = 0;
+        topUpMap[topup.user][address(topup.superToken)] = 0;
 
-        topUps[_index].owner = address(0);
+        topUps[_index].user = address(0);
         deletedTopUps.push(_index);
         emit TopUpDeleted(
             _index,
-            topup.owner,
+            topup.user,
             address(topup.superToken),
             topup.strategy.token,
             address(topup.strategy.strategyAddress),
@@ -267,6 +296,7 @@ contract Registry is Ownable {
     }
 
     function deleteBatch(uint256[] calldata _indices) public {
+        // delete multiple top ups
         for (uint256 i = 0; i < _indices.length; i++) {
             deleteTopUp(_indices[i]);
         }
