@@ -3,12 +3,12 @@ pragma solidity ^0.8.4;
 
 import { ILendingPoolAddressesProvider, ILendingPool, IAToken, IProtocolDataProvider } from "./interfaces/AaveInterfaces.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IStrategy.sol";
-import "../interfaces/IStrollResolver.sol";
-import "../common/StrollHelper.sol";
+import "../interfaces/IERC20Mod.sol";
 import "hardhat/console.sol";
 
-contract AaveStrollOut is IStrategy {
+contract AaveStrollOut is Ownable, IStrategy {
     using SafeERC20 for IERC20Mod;
     // using StrollHelper for ISuperToken;
 
@@ -30,17 +30,29 @@ contract AaveStrollOut is IStrategy {
     IProtocolDataProvider private constant PROTOCOL_DATA_PROVIDER =
         IProtocolDataProvider(0xFA3bD19110d986c5e5E9DD5F69362d05035D045B);
 
-    IStrollResolver private immutable strollResolver;
+    address private strollManager;
 
-    constructor(IStrollResolver _strollResolver) {
-        strollResolver = _strollResolver;
+    constructor(address _strollManager) {
+        strollManager = _strollManager;
     }
 
+    /**
+     * @dev This function assumes whatever given by StrollManager is correct. Therefore, all the necessary
+     * checks such as if a top-up is required and if so how much amount needs to be topped up, do we have
+     * enough allowance to perform a top-up and so on must be performed in StrollManager only.
+     *
+     * Should some checks still be performed ? One possible scenario is that a user might replenish their wallet
+     * with supertoken that we initiated a top-up for making a top-up unnecessary. This could happen because of 
+     * unfortunate transaction timings or maybe by malicious actors/users (front-running ?) 
+     */
     function topUp(
         address _user,
         address _aToken,
-        ISuperToken _superToken
+        ISuperToken _superToken,
+        uint256 _amount
     ) external override {
+        require(msg.sender == strollManager, "Caller not authorised");
+
         // Get underlying token address for the `_aToken`
         // NOTE: This line can revert a transaction if `_aToken` isn't a valid one
         address underlyingToken = IAToken(_aToken).UNDERLYING_ASSET_ADDRESS();
@@ -50,41 +62,19 @@ contract AaveStrollOut is IStrategy {
             "Incorrect supertoken"
         );
 
-        (bool reqTopUp, uint256 idealWithdrawAmount) = strollHelper.requireTopUp(
-            _superToken,
-            _user
-        );
-
-        // Topup is necessary only if liquidity will last for less than lowerLimit
-        require(reqTopUp, "TopUp not required");
-
-        // Get the allowance given by the user to this contract
-        uint256 totalWithdrawable = IERC20Mod(_aToken).allowance(
-            _user,
-            address(this)
-        );
-
-        require(totalWithdrawable > 0, "Not enough allowance");
-
         address lendingPool = LENDINGPOOL_ADDRESSES_PROVIDER.getLendingPool();
-
-        // If the totalWithdrawable amount is less than the idealWithdrawAmount
-        // then withdraw all the aTokens available
-        uint256 withdrawAmount = (totalWithdrawable > idealWithdrawAmount)
-            ? idealWithdrawAmount
-            : totalWithdrawable;
 
         // Transfer the aTokens from the user
         IERC20Mod(_aToken).safeTransferFrom(
             _user,
             address(this),
-            withdrawAmount
+            _amount
         );
 
         // Withdraw underlying token from Aave using transferred aTokens
         ILendingPool(lendingPool).withdraw(
             underlyingToken,
-            withdrawAmount,
+            _amount,
             address(this)
         );
 
@@ -100,11 +90,12 @@ contract AaveStrollOut is IStrategy {
                 type(uint256).max
             );
 
-        // As underlying token may have less than 18 decimals, we have to scale it up for supertoken upgrades
+        // As the underlying token may have less than 18 decimals, we have to scale it up for supertoken upgrades
         // Here we are assuming an underlying token cannot have decimals greater than 18
-        uint256 upgradeAmount = withdrawAmount *
+        uint256 upgradeAmount = _amount *
             (10**(18 - IERC20Mod(underlyingToken).decimals()));
 
+        // Upgrade the necessary amount of supertokens
         _superToken.upgrade(upgradeAmount);
 
         // Supertoken transfer should succeed
@@ -118,26 +109,16 @@ contract AaveStrollOut is IStrategy {
         emit TopUp(_user, address(_superToken), upgradeAmount);
     }
 
-    function isSupportedUnderlying(address _underlyingToken)
+    function isSupportedSuperToken(ISuperToken _superToken)
         public
         view
         override
         returns (bool)
     {
         (address aToken, , ) = PROTOCOL_DATA_PROVIDER.getReserveTokensAddresses(
-            _underlyingToken
+            _superToken.getUnderlyingToken()
         );
 
         return aToken != address(0);
     }
-
-    // /// @dev As aToken and it's underlying token are 1:1 correlated
-    // /// just return the amount of aToken as value of the same
-    // function checkValue(
-    //     address, // _user
-    //     address, // _aToken
-    //     uint256 _amount
-    // ) public pure returns (uint256) {
-    //     return _amount;
-    // }
 }

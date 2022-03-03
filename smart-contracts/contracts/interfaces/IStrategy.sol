@@ -6,7 +6,7 @@ import {ISuperToken} from "@superfluid-finance/ethereum-contracts/contracts/inte
 interface IStrategy {
     event TopUp(address _user, address _superToken, uint256 _amount);
 
-    function topUp(address _user, address _lpToken, ISuperToken _superToken) external;
+    function topUp(address _user, address _lpToken, ISuperToken _superToken, uint256 _amount) external;
 
-    function isSupportedUnderlying(address _underlyingToken) external view returns(bool);
+    function isSupportedSuperToken(ISuperToken _superToken) external view returns(bool);
 }
