@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IStrategy.sol";
 // import "./common/StrollHelper.sol";
-import "./interfaces/IStrollResolver.sol";
+// import "./interfaces/IStrollResolver.sol";
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
@@ -34,11 +34,11 @@ contract Registry is Ownable {
 
     mapping(bytes32 => TopUp) private topUps; // user => superToken => uint
 
-    IStrollResolver private immutable strollResolver;
+    // IStrollResolver private immutable strollResolver;
 
     // For testnet deployment
-    IConstantFlowAgreementV1 public constant CFA_V1 =
-        IConstantFlowAgreementV1(0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873);
+    IConstantFlowAgreementV1 public immutable CFA_V1;
+    // IConstantFlowAgreementV1(0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873);
 
     event TopUpCreated(
         bytes32 indexed id,
@@ -60,15 +60,15 @@ contract Registry is Ownable {
 
     event PerformedTopUp(bytes32 indexed id);
 
-    constructor(IStrollResolver _strollResolver) {
-        strollResolver = _strollResolver;
+    constructor(address _icfa) {
+        CFA_V1 = IConstantFlowAgreementV1(_icfa);
     }
 
     function getTopUpIndex(
         address _user,
         address _superToken,
         address _liquidityToken
-    ) public view returns (bytes32) {
+    ) public pure returns (bytes32) {
         return keccak256(abi.encode(_user, _superToken, _liquidityToken));
     }
 
@@ -157,6 +157,15 @@ contract Registry is Ownable {
             topup.lowerLimit,
             topup.upperLimit
         );
+    }
+
+    function checkTopUp(
+        address _user,
+        address _superToken,
+        address _liquidityToken
+    ) public view returns (bool, uint256) {
+        bytes32 index = getTopUpIndex(_user, _superToken, _liquidityToken);
+        return checkTopUp(index);
     }
 
     function checkTopUp(bytes32 _index) public view returns (bool, uint256) {
