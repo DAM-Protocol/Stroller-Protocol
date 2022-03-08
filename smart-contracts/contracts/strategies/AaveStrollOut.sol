@@ -95,15 +95,20 @@ contract AaveStrollOut is Ownable, IStrategy {
         uint256 upgradeAmount = _amount *
             (10**(18 - IERC20Mod(underlyingToken).decimals()));
 
-        // Upgrade the necessary amount of supertokens
-        _superToken.upgrade(upgradeAmount);
+        // // Upgrade the necessary amount of supertokens
+        // _superToken.upgrade(upgradeAmount);
 
-        // Supertoken transfer should succeed
-        require(
-            _superToken.transfer(_user, upgradeAmount),
-            "Supertoken transfer failed"
-        );
+        // // Supertoken transfer should succeed
+        // require(
+        //     _superToken.transfer(_user, upgradeAmount),
+        //     "Supertoken transfer failed"
+        // );
 
+        // Upgrade the necessary amount of supertokens and transfer them to a user.
+        // We are assuming that `upgradeTo` function will revert upon failure of supertoken transfer to user.
+        // If not, we need to check for the same after calling this method.
+        _superToken.upgradeTo(_user, upgradeAmount, " ");
+        
         console.log("Withdraw amount: %s", upgradeAmount);
 
         emit TopUp(_user, address(_superToken), upgradeAmount);
