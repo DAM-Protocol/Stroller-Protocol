@@ -101,15 +101,15 @@ contract ERC20StrollOut is Ownable, IStrategy {
     {
         uint256 factor;
         if (_underlyingDecimals < 18) {
-            // if underlying has less decimals
-            // one can upgrade less "granualar" amount of tokens
+            // If underlying has less decimals
+            // one can upgrade less "granular" amount of tokens
             factor = 10**(18 - _underlyingDecimals);
             _underlyingAmount = _amount / factor;
             // remove precision errors
             _adjustedAmount = _underlyingAmount * factor;
         } else if (_underlyingDecimals > 18) {
-            // if underlying has more decimals
-            // one can upgrade more "granualar" amount of tokens
+            // If underlying has more decimals
+            // one can upgrade more "granular" amount of tokens
             factor = 10**(_underlyingDecimals - 18);
             _underlyingAmount = _amount * factor;
             _adjustedAmount = _amount;

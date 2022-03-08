@@ -103,6 +103,7 @@ describe("ERC20 Stroll Out Testing (Testnet Deployment)", function () {
   async function setupEnv() {
     app = await appFactory.deploy(admin.address);
     await app.deployed();
+    await approveAndUpgrade();
   }
 
   async function approveAndUpgrade() {
@@ -115,7 +116,7 @@ describe("ERC20 Stroll Out Testing (Testnet Deployment)", function () {
       parseUnits("1000000", 18)
     );
     await WETHContract.connect(whale).approve(
-      DAI.superToken,
+      WETH.superToken,
       parseUnits("1000000", 18)
     );
 
@@ -136,7 +137,7 @@ describe("ERC20 Stroll Out Testing (Testnet Deployment)", function () {
       parseUnits("100", 6)
     );
 
-    userFlowRate = parseUnits("1000", 18).div(getBigNumber(getSeconds(30)));
+    userFlowRate = parseUnits("900", 18).div(getBigNumber(getSeconds(30)));
 
     await sf.cfaV1
       .createFlow({
@@ -203,98 +204,6 @@ describe("ERC20 Stroll Out Testing (Testnet Deployment)", function () {
 
     expect(await DAIContract.allowance(whaleAddr, app.address)).to.equal(
       constants.Zero
-    );
-  });
-
-  // Modify the following test case according to StrollManager if necessary
-  it.skip("should top up an account consuming some allowance", async () => {
-    await loadFixture(setupEnv);
-
-    userFlowRate = parseUnits("1000", 18).div(getBigNumber(getSeconds(30)));
-
-    await DAIContract.connect(whale).approve(
-      app.address,
-      parseUnits("200", 18)
-    );
-    await USDCContract.connect(whale).approve(
-      app.address,
-      parseUnits("200", 6)
-    );
-
-    await sf.cfaV1
-      .createFlow({
-        superToken: USDC.superToken,
-        receiver: dummy.address,
-        flowRate: userFlowRate,
-      })
-      .exec(whale);
-
-    await sf.cfaV1
-      .createFlow({
-        superToken: DAI.superToken,
-        receiver: dummy.address,
-        flowRate: userFlowRate,
-      })
-      .exec(whale);
-
-    await increaseTime(getSeconds(29));
-
-    balanceBeforeUSDCx = await USDCx.balanceOf({
-      account: whaleAddr,
-      providerOrSigner: ethersProvider,
-    });
-
-    balanceBeforeDAIx = await DAIx.balanceOf({
-      account: whaleAddr,
-      providerOrSigner: ethersProvider,
-    });
-
-    await app.topUp(
-      whaleAddr,
-      USDC.token,
-      USDC.superToken,
-      parseUnits("100", 18)
-    );
-    await app.topUp(
-      whaleAddr,
-      DAI.token,
-      DAI.superToken,
-      parseUnits("100", 18)
-    );
-
-    balanceAfterUSDCx = await USDCx.balanceOf({
-      account: whaleAddr,
-      providerOrSigner: ethersProvider,
-    });
-
-    balanceAfterDAIx = await DAIx.balanceOf({
-      account: whaleAddr,
-      providerOrSigner: ethersProvider,
-    });
-
-    // (Amount per month / 30) * Upper limit
-    expectedDiff = parseUnits(((1000 / 30) * 5).toString(), "18");
-    expectedDiffUSDC = parseInt((1000 / 30) * 5 * Math.pow(10, 6));
-    expectedDiffDAI = expectedDiff;
-
-    expect(
-      getBigNumber(balanceAfterUSDCx).sub(getBigNumber(balanceBeforeUSDCx))
-    ).to.be.closeTo(expectedDiff, parseUnits("1", 18));
-
-    expect(
-      getBigNumber(balanceAfterDAIx).sub(getBigNumber(balanceBeforeDAIx))
-    ).to.be.closeTo(expectedDiff, parseUnits("1", 18));
-
-    expect(
-      await amUSDCContract.allowance(whaleAddr, app.address)
-    ).to.be.closeTo(
-      parseUnits("200", 6).sub(getBigNumber(expectedDiffUSDC)),
-      parseUnits("1", 6)
-    );
-
-    expect(await amDAIContract.allowance(whaleAddr, app.address)).to.be.closeTo(
-      parseUnits("200", 18).sub(expectedDiffDAI),
-      parseUnits("1", 18)
     );
   });
 });

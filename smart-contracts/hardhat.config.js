@@ -27,20 +27,16 @@ module.exports = {
     hardhat: {
       initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
       forking: {
-        url: process.env.POLYGON_NODE_URL,
-        blockNumber: 23736635,
-        // url: process.env.MUMBAI_NODE_URL,
-        // blockNumber: 24645049,
+        // url: process.env.POLYGON_NODE_URL,
+        // blockNumber: 23736635,
+        url: process.env.MUMBAI_NODE_URL,
+        blockNumber: 25426446,
         enabled: true,
       },
-      blockGasLimit: 20000000,
-      gasPrice: 30000000000,
       saveDeployments: false,
     },
     polygon: {
       url: process.env.POLYGON_NODE_URL,
-      blockGasLimit: 20000000,
-      gasPrice: 40000000000,
       accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
       saveDeployments: true,
     },
