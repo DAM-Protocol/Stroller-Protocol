@@ -20,7 +20,7 @@ contract Registry is Ownable, OpsReady {
         ISuperToken superToken;
         IStrategy strategy;
         address liquidityToken;
-        uint64 time;
+        uint64 expiry;
         uint64 lowerLimit;
         uint64 upperLimit;
     }
@@ -78,7 +78,7 @@ contract Registry is Ownable, OpsReady {
         address _superToken,
         address _strategy,
         address _liquidityToken,
-        uint64 _time,
+        uint64 _expiry,
         uint64 _lowerLimit,
         uint64 _upperLimit
     ) external {
@@ -89,31 +89,34 @@ contract Registry is Ownable, OpsReady {
             "Null Address"
         );
 
-        require(_time > block.timestamp, "Invalid time");
+        require(_expiry > block.timestamp, "Invalid time");
+        require(_lowerLimit >= minLower, "Increase lower limit");
+        require(_upperLimit >= minUpper, "Increase upper limit");
 
         // check if topUp already exists for given user and superToken
         bytes32 index = getTopUpIndex(msg.sender, _superToken, _liquidityToken);
 
-        if (topUps[index].time == 0) {
-            // create new topUp
-            TopUp memory topUp = TopUp(
-                msg.sender,
-                ISuperToken(_superToken),
-                IStrategy(_strategy),
-                _liquidityToken,
-                _time,
-                _lowerLimit,
-                _upperLimit
+        if (topUps[index].user == address(0)) {
+            //new TopUp
+            IOps(ops).createTaskNoPrepayment(
+                address(this),
+                this.gelatoPerformTopUp.selector,
+                address(this),
+                abi.encodeWithSelector(this.gelatoCheckTopUp.selector, index),
+                ETH
             );
-            topUps[index] = topUp;
         }
 
-        IOps(ops).createTask(
-            address(this),
-            this.gelatoPerformTopUp.selector,
-            address(this),
-            abi.encodeWithSelector(this.gelatoCheckTopUp.selector, index)
+        TopUp memory topUp = TopUp( // create new TopUp or update topup
+            msg.sender,
+            ISuperToken(_superToken),
+            IStrategy(_strategy),
+            _liquidityToken,
+            _expiry,
+            _lowerLimit,
+            _upperLimit
         );
+        topUps[index] = topUp;
 
         emit TopUpCreated(
             index,
@@ -121,7 +124,7 @@ contract Registry is Ownable, OpsReady {
             _superToken,
             _strategy,
             _liquidityToken,
-            _time,
+            _expiry,
             _lowerLimit,
             _upperLimit
         );
@@ -168,7 +171,7 @@ contract Registry is Ownable, OpsReady {
             topUp.superToken,
             topUp.strategy,
             topUp.liquidityToken,
-            topUp.time,
+            topUp.expiry,
             topUp.lowerLimit,
             topUp.upperLimit
         );
@@ -183,12 +186,12 @@ contract Registry is Ownable, OpsReady {
         return checkTopUp(index);
     }
 
-    function checkTopUp(bytes32 _index) public view returns (uint256) {
+    function checkTopUp(bytes32 _index) public view returns (uint256 amount) {
         TopUp memory topUp = topUps[_index];
 
         if (
             topUp.user == address(0) || // Task exists and has a valid user
-            topUp.time > block.timestamp || // Task exists and current time is before task end time
+            topUp.expiry > block.timestamp || // Task exists and current time is before task end time
             IERC20(topUp.liquidityToken).allowance(
                 topUp.user,
                 address(topUp.strategy) // contract is allowed to spend
@@ -227,9 +230,10 @@ contract Registry is Ownable, OpsReady {
     }
 
     function performTopUp(bytes32 _index) public {
-        TopUp memory topUp = topUps[_index];
         uint256 topUpAmount = checkTopUp(_index);
         require(topUpAmount > 0, "TopUp check failed");
+
+        TopUp memory topUp = topUps[_index];
         topUp.strategy.topUp(
             topUp.user,
             topUp.liquidityToken,
@@ -244,14 +248,37 @@ contract Registry is Ownable, OpsReady {
         view
         returns (bool canExec, bytes memory execPayload)
     {
-        // TopUp memory topup = topUps[_index];
-        uint256 topUpAmount = checkTopUp(_index);
+        TopUp memory topUp = topUps[_index];
 
-        canExec = topUpAmount > 0;
-        execPayload = abi.encodeWithSelector(
-            this.gelatoPerformTopUp.selector,
-            _index
-        );
+        if (
+            topUp.user == address(0) || // Task exists and has a valid user
+            topUp.expiry > block.timestamp || // Task exists and current time is before task end time
+            IERC20(topUp.liquidityToken).allowance(
+                topUp.user,
+                address(topUp.strategy) // contract is allowed to spend
+            ) ==
+            0 ||
+            IERC20(topUp.liquidityToken).balanceOf(topUp.user) == 0 // check user balance
+        ) return (false, bytes(abi.encode(0)));
+
+        int96 flowRate = CFA_V1.getNetFlow(topUp.superToken, topUp.user);
+
+        if (flowRate < 0) {
+            uint256 superBalance = topUp.superToken.balanceOf(topUp.user);
+            uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
+
+            if (superBalance <= ((positiveFlowRate * topUp.lowerLimit) / 2)) {
+                return (
+                    true,
+                    abi.encodeWithSelector(
+                        this.gelatoPerformTopUp.selector,
+                        _index
+                    )
+                );
+            }
+        }
+
+        return (false, bytes(abi.encode(0)));
     }
 
     function gelatoPerformTopUp(bytes32 _index) public onlyOps {
@@ -263,12 +290,28 @@ contract Registry is Ownable, OpsReady {
 
     function deleteTopUp(bytes32 _index) public {
         TopUp memory topUp = topUps[_index];
-        require(topUp.time > 0, "TopUp does not exist");
+        require(topUp.expiry > 0, "TopUp does not exist");
         require(
-            topUp.user == msg.sender || topUp.time < block.timestamp,
+            topUp.user == msg.sender || topUp.expiry < block.timestamp,
             "Can't delete TopUp"
         );
         delete topUps[_index];
+
+        // delete task on gelato
+        bytes32 resolverHash = getResolverHash(
+            address(this),
+            abi.encodeWithSelector(this.gelatoCheckTopUp.selector, _index)
+        );
+        bytes32 taskId = getTaskId(
+            address(this),
+            address(this),
+            this.gelatoCheckTopUp.selector,
+            false,
+            ETH,
+            resolverHash
+        );
+        ops.cancelTask(taskId);
+
         emit TopUpDeleted(
             _index,
             topUp.user,

@@ -14,20 +14,30 @@ interface IOps {
         address _resolverAddress,
         bytes calldata _resolverData
     ) external returns (bytes32 task);
+
+    function createTaskNoPrepayment(
+        address _execAddress,
+        bytes4 _execSelector,
+        address _resolverAddress,
+        bytes calldata _resolverData,
+        address _feeToken
+    ) external returns (bytes32 task);
+
+    function cancelTask(bytes32 _taskId) external;
 }
 
 abstract contract OpsReady {
-    address public immutable ops;
+    IOps public immutable ops;
     address payable public immutable gelato;
     address public constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     modifier onlyOps() {
-        require(msg.sender == ops, "OpsReady: onlyOps");
+        require(msg.sender == address(ops), "OpsReady: onlyOps");
         _;
     }
 
     constructor(address _ops) {
-        ops = _ops;
+        ops = IOps(_ops);
         gelato = IOps(_ops).gelato();
     }
 
@@ -38,5 +48,33 @@ abstract contract OpsReady {
         } else {
             SafeERC20.safeTransfer(IERC20(_paymentToken), gelato, _amount);
         }
+    }
+
+    function getResolverHash(
+        address _resolverAddress,
+        bytes memory _resolverData
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encode(_resolverAddress, _resolverData));
+    }
+
+    function getTaskId(
+        address _taskCreator,
+        address _execAddress,
+        bytes4 _selector,
+        bool _useTaskTreasuryFunds,
+        address _feeToken,
+        bytes32 _resolverHash
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    _taskCreator,
+                    _execAddress,
+                    _selector,
+                    _useTaskTreasuryFunds,
+                    _feeToken,
+                    _resolverHash
+                )
+            );
     }
 }
