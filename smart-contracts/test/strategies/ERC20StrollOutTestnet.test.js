@@ -167,18 +167,8 @@ describe("ERC20 Stroll Out Testing (Testnet Deployment)", function () {
       providerOrSigner: ethersProvider,
     });
 
-    await app.topUp(
-      whaleAddr,
-      USDC.token,
-      USDC.superToken,
-      parseUnits("100", 18)
-    );
-    await app.topUp(
-      whaleAddr,
-      DAI.token,
-      DAI.superToken,
-      parseUnits("100", 18)
-    );
+    await app.topUp(whaleAddr, USDC.superToken, parseUnits("100", 18));
+    await app.topUp(whaleAddr, DAI.superToken, parseUnits("100", 18));
 
     balanceAfterUSDCx = await USDCx.balanceOf({
       account: whaleAddr,

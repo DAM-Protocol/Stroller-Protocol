@@ -31,27 +31,24 @@ contract ERC20StrollOut is Ownable, IStrategy {
      */
     function topUp(
         address _user,
-        address _underlyingToken,
         ISuperToken _superToken,
         uint256 _superTokenAmount
     ) external override {
+        // Only `StrollManager` should be able to call this method
         require(msg.sender == strollManager, "Caller not authorised");
 
-        require(
-            _superToken.getUnderlyingToken() == _underlyingToken,
-            "Incorrect supertoken"
-        );
+        IERC20Mod underlyingToken = IERC20Mod(_superToken.getUnderlyingToken());
 
         (
             uint256 underlyingAmount,
             uint256 adjustedAmount
         ) = _toUnderlyingAmount(
                 _superTokenAmount,
-                IERC20Mod(_underlyingToken).decimals()
+                underlyingToken.decimals()
             );
 
         // Transfer the underlying tokens from the user
-        IERC20Mod(_underlyingToken).safeTransferFrom(
+        underlyingToken.safeTransferFrom(
             _user,
             address(this),
             underlyingAmount
@@ -59,12 +56,12 @@ contract ERC20StrollOut is Ownable, IStrategy {
 
         // Giving the Supertoken max allowance for upgrades if that hasn't been done before
         if (
-            IERC20Mod(_underlyingToken).allowance(
+           underlyingToken.allowance(
                 address(this),
                 address(_superToken)
             ) == 0
         )
-            IERC20Mod(_underlyingToken).safeIncreaseAllowance(
+            underlyingToken.safeIncreaseAllowance(
                 address(_superToken),
                 type(uint256).max
             );
