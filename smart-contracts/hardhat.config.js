@@ -6,6 +6,7 @@ require("hardhat-gas-reporter");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
 require("hardhat-deploy");
+require("hardhat-tracer");
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -18,7 +19,7 @@ module.exports = {
     version: "0.8.4",
     settings: {
       optimizer: {
-        enabled: false,
+        enabled: true, // Make it true after testing or before deployment.
         runs: 200,
       },
     },
