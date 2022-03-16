@@ -1,4 +1,4 @@
-const { getBigNumber, getSeconds } = require("../helpers/helpers");
+const { getSeconds } = require("../helpers/helpers");
 
 module.exports = async function ({ deployments, getNamedAccounts }) {
   const { deploy } = deployments;
@@ -9,7 +9,7 @@ module.exports = async function ({ deployments, getNamedAccounts }) {
   const strollManagerTestnet = await deploy("StrollManagerTestnet", {
     from: deployer,
     args: [
-      "0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873",
+      "0xF4C5310E51F6079F601a5fb7120bC72a70b96e2A",
       12 * 60 * 60,
       getSeconds(2),
     ],
@@ -28,7 +28,7 @@ module.exports = async function ({ deployments, getNamedAccounts }) {
     await hre.run("verify:verify", {
       address: strollManagerTestnet.address,
       constructorArguments: [
-        "0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873",
+        "0xF4C5310E51F6079F601a5fb7120bC72a70b96e2A",
         12 * 60 * 60,
         getSeconds(2),
       ],
@@ -55,4 +55,4 @@ module.exports = async function ({ deployments, getNamedAccounts }) {
   console.info("\n--Infrastructure setup complete !--\n");
 };
 
-module.exports.tags = ["mumbai"];
+module.exports.tags = ["rinkeby"];
