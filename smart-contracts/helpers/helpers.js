@@ -49,6 +49,23 @@ const setNextBlockTimestamp = async (timestamp) => {
   await network.provider.send("evm_mine");
 };
 
+const getEvents = async (tx, eventName) => {
+  const receipt = await tx.wait();
+  return receipt.events?.filter((x) => {
+    return x.event === eventName;
+  });
+};
+
+const expectedRevert = async (fn, revertMsg, printError = false) => {
+  try {
+    await fn;
+    return false;
+  } catch (err) {
+    if (printError) console.log(err);
+    return err.toString().includes(revertMsg);
+  }
+};
+
 module.exports = {
   getBigNumber,
   getTimeStamp,
@@ -59,4 +76,6 @@ module.exports = {
   currentBlockTimestamp,
   setNextBlockTimestamp,
   impersonateAccounts,
+  getEvents,
+  expectedRevert,
 };
