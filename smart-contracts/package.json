@@ -28,6 +28,12 @@
     "prettier-plugin-solidity": "^1.0.0-beta.13",
     "reflect-metadata": "^0.1.13",
     "solhint": "^3.3.6",
-    "solidity-coverage": "^0.7.18"
+    "solidity-coverage": "^0.7.20"
+  },
+  "dependencies": {
+    "@nomiclabs/hardhat-truffle5": "^2.0.5",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "@superfluid-finance/js-sdk": "^0.5.12",
+    "web3": "^1.7.1"
   }
 }

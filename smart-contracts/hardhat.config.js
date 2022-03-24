@@ -1,12 +1,14 @@
+require("@nomiclabs/hardhat-truffle5");
 require("dotenv").config();
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
-require("@nomiclabs/hardhat-web3");
+//require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
-require("hardhat-contract-sizer");
+//require("hardhat-contract-sizer");
 require("hardhat-deploy");
 require("hardhat-tracer");
+
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -26,13 +28,16 @@ module.exports = {
   },
   networks: {
     hardhat: {
+    },
+    /*
+    hardhat: {
       initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
       forking: {
         // url: process.env.POLYGON_NODE_URL,
         // blockNumber: 23736635,
         url: process.env.MUMBAI_NODE_URL,
         blockNumber: 25426446,
-        enabled: true,
+        enabled: false,
       },
       saveDeployments: false,
     },
@@ -51,6 +56,7 @@ module.exports = {
       accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
       saveDeployments: true,
     },
+    */
   },
   gasReporter: {
     enabled: true,
