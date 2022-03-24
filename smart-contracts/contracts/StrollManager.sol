@@ -48,6 +48,8 @@ contract StrollManager is Ownable {
     );
 
     event PerformedTopUp(bytes32 indexed id, uint256 topUpAmount);
+    event AddedApprovedStrategy(address indexed strategy);
+    event RemovedApprovedStrategy(address indexed strategy);
 
     constructor(
         address _icfa,
