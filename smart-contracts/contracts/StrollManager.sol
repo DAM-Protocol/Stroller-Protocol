@@ -87,6 +87,8 @@ contract StrollManager is Ownable {
         require(_expiry > block.timestamp, "Invalid time");
         require(_lowerLimit >= minLower, "Increase lower limit");
         require(_upperLimit >= minUpper, "Increase upper limit");
+        require(approvedStrategies[_strategy], "strategy not allowed");
+        require(IStrategy(_strategy).isSupportedSuperToken(ISuperToken(_superToken)), "super token not supported");
 
         // check if topUp already exists for given user and superToken
         bytes32 index = getTopUpIndex(msg.sender, _superToken, _liquidityToken);
