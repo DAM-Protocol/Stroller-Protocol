@@ -23,6 +23,7 @@ contract StrollManager is Ownable {
     uint64 public minLower;
     uint64 public minUpper;
     mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
+    mapping(address => bool) public approvedStrategies;
 
     // solhint-disable-next-line
     IConstantFlowAgreementV1 public immutable CFA_V1;
@@ -189,6 +190,19 @@ contract StrollManager is Ownable {
             topUpAmount
         );
         emit PerformedTopUp(_index, topUpAmount);
+    }
+
+    function addApprovedStrategy(address strategy) external onlyOwner {
+        require(strategy != address(0), "empty strategy");
+        approvedStrategies[strategy] = true;
+        emit AddedApprovedStrategy(strategy);
+    }
+
+    function removeApprovedStrategy(address strategy) external onlyOwner {
+        if(approvedStrategies[strategy]) {
+            delete approvedStrategies[strategy];
+            emit RemovedApprovedStrategy(strategy);
+        }
     }
 
     function deleteTopUpByIndex(bytes32 _index) public {
