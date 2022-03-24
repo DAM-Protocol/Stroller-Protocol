@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract TestToken is ERC20 {
+contract MockERC20 is ERC20 {
 
     uint8 private _decimals;
 
@@ -25,7 +25,7 @@ contract TestToken is ERC20 {
         return _decimals;
     }
 
-    function changeDecimals(uint8 newDecimals) public {
+    function setDecimals(uint8 newDecimals) public {
         _decimals = newDecimals;
     }
 
