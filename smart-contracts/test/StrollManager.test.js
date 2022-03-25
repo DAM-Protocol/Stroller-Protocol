@@ -35,25 +35,31 @@ const getIndex = (user, superToken, liquidityToken) => {
 };
 
 const createStream = async (supertoken, sender, receiver, flowRate) => {
-  const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
-  const callData = cfaInterface.encodeFunctionData("createFlow", [
-    supertoken.address,
-    receiver.address,
-    flowRate,
-    "0x",
-  ]);
-  await host.connect(sender).callAgreement(cfa.address, callData, "0x");
+  const flow = await cfa.getFlow(supertoken.address, sender.address, receiver.address);
+  if(flow.flowRate.toString() === "0") {
+    const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
+    const callData = cfaInterface.encodeFunctionData("createFlow", [
+      supertoken.address,
+      receiver.address,
+      flowRate,
+      "0x",
+    ]);
+    await host.connect(sender).callAgreement(cfa.address, callData, "0x");
+  }
 };
 
 const deleteStream = async (supertoken, sender, receiver) => {
-  const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
-  const callData = cfaInterface.encodeFunctionData("deleteFlow", [
-    supertoken.address,
-    sender.address,
-    receiver.address,
-    "0x",
-  ]);
-  await host.connect(sender).callAgreement(cfa.address, callData, "0x");
+  const flow = await cfa.getFlow(supertoken.address, sender.address, receiver.address);
+  if(flow.flowRate > 0) {
+    const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
+    const callData = cfaInterface.encodeFunctionData("deleteFlow", [
+      supertoken.address,
+      sender.address,
+      receiver.address,
+      "0x",
+    ]);
+    await host.connect(sender).callAgreement(cfa.address, callData, "0x");
+  }
 };
 
 before(async () => {
@@ -133,6 +139,8 @@ beforeEach(async () => {
   );
   strategy = await strollerFactory.deploy(strollManager.address);
   await strollManager.addApprovedStrategy(strategy.address);
+  deleteStream(daix, user, streamReceiver);
+  deleteStream(daix, streamReceiver,user);
 });
 
 describe("#0 - StrollManager: Deployment and configurations", function () {
@@ -575,7 +583,6 @@ describe("#5 - TopUps", function () {
     assert.equal(amount, expected, "amount is wrong");
   });
   it("Case #5.2 - checkTopUp without stream", async () => {
-    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
     await strollManager
       .connect(user)
       .createTopUp(
@@ -629,7 +636,6 @@ describe("#5 - TopUps", function () {
     assert.equal(amount, 0, "amount is wrong");
   });
   it("Case #5.5 - checkTopUp without balance", async () => {
-    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
     await strollManager
       .connect(user)
       .createTopUp(
@@ -660,7 +666,6 @@ describe("#5 - TopUps", function () {
     assert.equal(amount, 0, "amount is wrong");
   });
   it("Case #5.6 - checkTopUp with netFlowPositive should return zero", async () => {
-    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
     await dai.mint(user.address, parseUnits("1000", 18));
     await dai.mint(streamReceiver.address, parseUnits("1000", 18));
     await strollManager
@@ -696,7 +701,6 @@ describe("#5 - TopUps", function () {
     assert.equal(amount, 0, "amount is wrong");
   });
   it("Case #5.7 - checkTopUp with larger superToken balance should return zero", async () => {
-    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
     await strollManager
       .connect(user)
       .createTopUp(
@@ -734,7 +738,6 @@ describe("#5 - TopUps", function () {
 
 describe("#6 - peform Top Up", function () {
   it("Case #6.1 - TopUp", async () => {
-    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
     await strollManager
       .connect(user)
       .createTopUp(
@@ -766,7 +769,6 @@ describe("#6 - peform Top Up", function () {
     assert.isAbove(after, balance, "balance should go up");
   });
   it("Case #6.2 - should revert if no topAmount", async () => {
-    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
     await expectedRevert(
       strollManager.performTopUp(user.address, daix.address, dai.address),
       "TopUp check failed"
