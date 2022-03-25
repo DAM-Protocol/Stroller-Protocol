@@ -17,7 +17,7 @@ const helper = require("./../helpers/helpers");
 const MIN_LOWER = 2;
 const MIN_UPPER = 7;
 
-let accounts, owner, user;
+let accounts, owner, user, streamReceiver;
 let sf, dai, daix, nativeToken, strollManager;
 const errorHandler = (err) => {
   if (err) throw err;
@@ -35,6 +35,7 @@ before(async () => {
   accounts = await ethers.getSigners();
   owner = accounts[0];
   user = accounts[3];
+  streamReceiver = accounts[4];
   // Deploy SF and needed tokens
   await deployFramework(errorHandler, {
     web3,
@@ -402,7 +403,6 @@ describe("#4 - StrollManager: Delete TopUps", function () {
   });
   it("Case #4.2 - Should remove topUp - non user caller", async () => {
     const expiry = helper.getTimeStampNow() + 3600;
-    const index = getIndex(user.address, daix.address, dai.address);
     await strollManager
       .connect(user)
       .createTopUp(
@@ -509,4 +509,11 @@ describe("#4 - StrollManager: Delete TopUps", function () {
     );
     assert.ok(rightError);
   });
+});
+
+describe("#5 - TopUps", function () {
+  it("Case #5.1 - checkTopUp", async () => {});
+  it("Case #5.2 - checkTopUp without stream", async () =>{});
+  it("Case #5.3 - checkTopUp without data should return zero", async () =>{});
+  it("Case #5.4 - checkTopUp with netFlowPositive should return zero", async () =>{});
 });
