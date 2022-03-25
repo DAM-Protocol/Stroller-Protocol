@@ -111,4 +111,8 @@ contract ERC20StrollOut is Ownable, IStrategy {
             _underlyingAmount = _adjustedAmount = _amount;
         }
     }
+
+    function emergencyWithdraw(address token) public onlyOwner {
+        IERC20(token).transfer(msg.sender, IERC20(token).balanceOf(address(this)));
+    }
 }

@@ -332,3 +332,56 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
     );
   });
 });
+
+describe("#4 - ERC20StrollOut: emergencyWithdraw", function () {
+  it("Case #4.1 - transfer all locked in contract", async () => {
+    const amount = parseUnits("5", 18);
+    await dai.mint(owner.address, parseUnits("10", 18));
+    await dai.connect(owner).approve(daix.address, amount);
+    await daix.connect(owner).upgrade(amount);
+    const daiBalance = await dai.balanceOf(owner.address);
+    const daixBalance = await dai.balanceOf(owner.address);
+    await dai.connect(owner).transfer(strollOutInstance.address, amount);
+    await daix.connect(owner).transfer(strollOutInstance.address, amount);
+
+    assert.equal(
+      (await dai.balanceOf(strollOutInstance.address)).toString(),
+      amount,
+      "no tokens send to contract"
+    );
+    assert.equal(
+      (await daix.balanceOf(strollOutInstance.address)).toString(),
+      amount,
+      "no tokens send to contract"
+    );
+    await strollOutInstance.connect(owner).emergencyWithdraw(dai.address);
+    await strollOutInstance.connect(owner).emergencyWithdraw(daix.address);
+    assert.equal(
+      (await dai.balanceOf(strollOutInstance.address)).toString(),
+      0,
+      "contract should have zero balance"
+    );
+    assert.equal(
+      (await dai.balanceOf(strollOutInstance.address)).toString(),
+      0,
+      "contract should have zero balance"
+    );
+    assert.equal(
+      daiBalance.toString(),
+      (await dai.balanceOf(owner.address)).toString(),
+      "owner should get all tokens"
+    );
+    assert.equal(
+      daixBalance.toString(),
+      (await daix.balanceOf(owner.address)).toString(),
+      "owner should get all tokens"
+    );
+  });
+  it("Case #4.1 - only Owner can execute withdraw", async () => {
+    const rigthError = await helper.expectedRevert(
+      strollOutInstance.connect(user).emergencyWithdraw(dai.address),
+      "Ownable: caller is not the owner"
+    );
+    assert.ok(rigthError);
+  });
+});
