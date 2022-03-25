@@ -102,6 +102,13 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
     );
     assert.ok(rightError);
   });
+  it("Case #0.4 - Should revert if not owner", async () => {
+    const rightError = await helper.expectedRevert(
+      strollOutInstance.connect(user).changeStrollManager(accounts[9].address),
+      "Ownable: caller is not the owner"
+    );
+    assert.ok(rightError);
+  });
 });
 
 describe("#1 - ERC20StrollOut: SuperToken support ", function () {
