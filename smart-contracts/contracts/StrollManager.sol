@@ -143,8 +143,9 @@ contract StrollManager is Ownable {
         address _superToken,
         address _liquidityToken
     ) public view returns (uint256) {
-        bytes32 index = getTopUpIndex(_user, _superToken, _liquidityToken);
-        return checkTopUpByIndex(index);
+        return checkTopUpByIndex(
+            getTopUpIndex(_user, _superToken, _liquidityToken)
+        );
     }
 
     function checkTopUpByIndex(bytes32 _index) public view returns (uint256 amount) {
@@ -207,6 +208,10 @@ contract StrollManager is Ownable {
             delete approvedStrategies[strategy];
             emit RemovedApprovedStrategy(strategy);
         }
+    }
+
+    function getApprovedStrategy(address strategy) external returns(bool) {
+        return approvedStrategies[strategy];
     }
 
     function deleteTopUpByIndex(bytes32 _index) public {
