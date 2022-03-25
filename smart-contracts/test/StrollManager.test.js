@@ -5,6 +5,8 @@
 const { parseUnits } = require("@ethersproject/units");
 const SuperfluidSDK = require("@superfluid-finance/js-sdk");
 const ISuperTokenFactory = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperTokenFactory");
+const ISuperfluid = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperfluid");
+const IConstantFlowAgreementV1 = require("@superfluid-finance/ethereum-contracts/build/contracts/IConstantFlowAgreementV1");
 const ISuperToken = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperToken");
 const TestToken = require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken");
 const NativeSuperTokenProxy = require("@superfluid-finance/ethereum-contracts/build/contracts/NativeSuperTokenProxy");
@@ -13,12 +15,13 @@ const deployTestToken = require("@superfluid-finance/ethereum-contracts/scripts/
 const deploySuperToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-super-token");
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../helpers/helpers");
+const { getSeconds, expectedRevert } = require("../helpers/helpers");
 
 const MIN_LOWER = 2;
 const MIN_UPPER = 7;
 
 let accounts, owner, user, streamReceiver;
-let sf, dai, daix, nativeToken, strollManager;
+let sf, dai, daix, host, cfa, nativeToken, strollManager;
 const errorHandler = (err) => {
   if (err) throw err;
 };
@@ -29,6 +32,28 @@ const getIndex = (user, superToken, liquidityToken) => {
     [user, superToken, liquidityToken]
   );
   return ethers.utils.keccak256(encodedData);
+};
+
+const createStream = async (supertoken, sender, receiver, flowRate) => {
+  const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
+  const callData = cfaInterface.encodeFunctionData("createFlow", [
+    supertoken.address,
+    receiver.address,
+    flowRate,
+    "0x",
+  ]);
+  await host.connect(sender).callAgreement(cfa.address, callData, "0x");
+};
+
+const deleteStream = async (supertoken, sender, receiver) => {
+  const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
+  const callData = cfaInterface.encodeFunctionData("deleteFlow", [
+    supertoken.address,
+    sender.address,
+    receiver.address,
+    "0x",
+  ]);
+  await host.connect(sender).callAgreement(cfa.address, callData, "0x");
 };
 
 before(async () => {
@@ -59,6 +84,12 @@ before(async () => {
   // get dai/daix as ethers
   daix = new ethers.Contract(sf.tokens.fDAIx.address, ISuperToken.abi, owner);
   dai = new ethers.Contract(sf.tokens.fDAI.address, TestToken.abi, owner);
+  host = new ethers.Contract(sf.host.address, ISuperfluid.abi, owner);
+  cfa = new ethers.Contract(
+    sf.agreements.cfa.address,
+    IConstantFlowAgreementV1.abi,
+    owner
+  );
 
   strollerFactory = await ethers.getContractFactory("ERC20StrollOut", owner);
   strollManagerFactory = await ethers.getContractFactory(
@@ -133,6 +164,13 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
       "wrong strategy"
     );
   });
+  it("Case #2.2 - Should not register empty strategy", async () => {
+    const rightError = await helper.expectedRevert(
+      strollManager.connect(owner).addApprovedStrategy(zeroAddress),
+      "empty strategy"
+    );
+    assert.ok(rightError);
+  });
   it("Case #2.2 - Should check if strategy is approved", async () => {
     // reset manager
     strollManager = await strollManagerFactory.deploy(
@@ -145,12 +183,6 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
     assert.ok(isOk);
   });
   it("Case #2.3 - Should remove register strategy", async () => {
-    // reset manager
-    strollManager = await strollManagerFactory.deploy(
-      sf.agreements.cfa.address,
-      MIN_LOWER,
-      MIN_UPPER
-    );
     await strollManager.addApprovedStrategy(strategy.address);
     const tx = await strollManager.removeApprovedStrategy(strategy.address);
     const strategyEvent = await helper.getEvents(tx, "RemovedApprovedStrategy");
@@ -159,6 +191,8 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
       strategy.address,
       "wrong strategy"
     );
+    // removing a non existing strategy should not revert
+    await strollManager.removeApprovedStrategy(strategy.address);
   });
   it("Case #2.4 - Only owner can add/remove strategy", async () => {
     // reset manager
@@ -512,10 +546,230 @@ describe("#4 - StrollManager: Delete TopUps", function () {
 });
 
 describe("#5 - TopUps", function () {
-  it("Case #5.1 - checkTopUp", async () => {});
-  it("Case #5.2 - checkTopUp without stream", async () =>{});
-  it("Case #5.3 - checkTopUp without data should return zero", async () =>{});
-  it("Case #5.4 - checkTopUp without approved balance", async () =>{});
-  it("Case #5.5 - checkTopUp without balance", async () =>{});
-  it("Case #5.6 - checkTopUp with netFlowPositive should return zero", async () =>{});
+  it("Case #5.1 - checkTopUp", async () => {
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("100", 18));
+    // approve strategy
+    await dai.connect(user).approve(strategy.address, parseUnits("100", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("10", 18));
+    await createStream(daix, user, streamReceiver, "100000000000000", "0x");
+    const expected = 100000000000000 * getSeconds(5);
+    await helper.increaseTime(3600 * 24 * 5);
+    const amount = await strollManager.checkTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, expected, "amount is wrong");
+  });
+  it("Case #5.2 - checkTopUp without stream", async () => {
+    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+    const amount = await strollManager.checkTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, 0, "amount should be zero");
+  });
+  it("Case #5.3 - checkTopUp without data should return zero", async () => {
+    const amount = await strollManager.checkTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, 0, "amount should be zero");
+  });
+  it("Case #5.4 - checkTopUp without approved balance", async () => {
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+    // remove approval
+    await dai.connect(user).approve(strategy.address, 0);
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("100", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("10", 18));
+    await createStream(daix, user, streamReceiver, "100000000000000", "0x");
+
+    await helper.increaseTime(3600 * 24 * 5);
+    const amount = await strollManager.checkTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, 0, "amount is wrong");
+  });
+  it("Case #5.5 - checkTopUp without balance", async () => {
+    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("100", 18));
+    // approve strategy
+    await dai.connect(user).approve(strategy.address, parseUnits("100", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("10", 18));
+    // remove dai balance
+    const balance = await dai.balanceOf(user.address);
+    await dai.connect(user).transfer(owner.address, balance);
+    await createStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await helper.increaseTime(3600 * 24 * 5);
+    const amount = await strollManager.checkTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, 0, "amount is wrong");
+  });
+  it("Case #5.6 - checkTopUp with netFlowPositive should return zero", async () => {
+    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await dai.mint(user.address, parseUnits("1000", 18));
+    await dai.mint(streamReceiver.address, parseUnits("1000", 18));
+    await strollManager
+      .connect(streamReceiver)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("100", 18));
+    await dai
+      .connect(streamReceiver)
+      .approve(daix.address, parseUnits("100", 18));
+
+    // approve strategy
+    await dai
+      .connect(streamReceiver)
+      .approve(strategy.address, parseUnits("100", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("10", 18));
+    await createStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await helper.increaseTime(3600 * 24 * 5);
+    const amount = await strollManager.checkTopUp(
+      streamReceiver.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, 0, "amount is wrong");
+  });
+  it("Case #5.7 - checkTopUp with larger superToken balance should return zero", async () => {
+    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("100", 18));
+    // approve strategy
+    await dai.connect(user).approve(strategy.address, parseUnits("100", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("10", 18));
+
+    await createStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await helper.increaseTime(3600 * 24 * 5);
+    // mint and send tokens to user
+    await dai.mint(owner.address, parseUnits("1000", 18));
+    await dai.connect(owner).approve(daix.address, parseUnits("100", 18));
+    await daix
+      .connect(owner)
+      .upgradeTo(user.address, parseUnits("100", 18), "0x");
+    const amount = await strollManager.checkTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    assert.equal(amount, 0, "amount is wrong");
+  });
+});
+
+describe("#6 - peform Top Up", function () {
+  it("Case #6.1 - TopUp", async () => {
+    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        getSeconds(5),
+        getSeconds(5)
+      );
+
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("100", 18));
+    // approve strategy
+    await dai.connect(user).approve(strategy.address, parseUnits("100", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("10", 18));
+    await createStream(daix, user, streamReceiver, "100000000000000", "0x");
+
+    await helper.increaseTime(3600 * 24 * 5);
+    const balance = await daix.balanceOf(user.address);
+    const tx = await strollManager.performTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+    await helper.getEvents(tx, "PerformedTopUp");
+    const after = await daix.balanceOf(user.address);
+    assert.isAbove(after, balance, "balance should go up");
+  });
+  it("Case #6.2 - should revert if no topAmount", async () => {
+    await deleteStream(daix, user, streamReceiver, "100000000000000", "0x");
+    await expectedRevert(
+      strollManager.performTopUp(user.address, daix.address, dai.address),
+      "TopUp check failed"
+    );
+  });
 });
