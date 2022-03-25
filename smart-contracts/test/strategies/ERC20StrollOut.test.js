@@ -3,23 +3,16 @@
 /* eslint-disable no-undef */
 
 const { parseUnits } = require("@ethersproject/units");
-const SuperfluidSDK = require("@superfluid-finance/js-sdk");
-const ISuperTokenFactory = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperTokenFactory");
-const ISuperToken = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperToken");
-const TestToken = require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken");
-const NativeSuperTokenProxy = require("@superfluid-finance/ethereum-contracts/build/contracts/NativeSuperTokenProxy");
-const deployFramework = require("@superfluid-finance/ethereum-contracts/scripts/deploy-framework");
-const deployTestToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-test-token");
-const deploySuperToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-super-token");
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../../helpers/helpers");
+const devEnv = require("./../utils/setEnv");
 
 const errorHandler = (err) => {
   if (err) throw err;
 };
 // aliases to accounts
 let accounts, owner, mockManager, nonManager, user;
-let sf, nativeToken, superTokenFactory, dai, daix, mock20, superMock20;
+let dai, daix, mock20, superMock20, env;
 
 let strollerFactory;
 let strollOutInstance;
@@ -30,57 +23,38 @@ before(async () => {
   mockManager = accounts[1];
   nonManager = accounts[2];
   user = accounts[3];
-  // Deploy SF and needed tokens
-  await deployFramework(errorHandler, {
-    web3,
-    from: accounts[0].address,
-    newTestResolver: true,
-  });
-  await deployTestToken(errorHandler, [":", "fDAI"], {
-    web3,
-    from: accounts[0].address,
-  });
-  await deploySuperToken(errorHandler, [":", "fDAI"], {
-    web3,
-    from: accounts[0].address,
-  });
-  sf = new SuperfluidSDK.Framework({
-    web3,
-    version: "test",
-    tokens: ["fDAI"],
-  });
-  await sf.initialize();
+  env = await devEnv.deploySuperfluid(owner);
   // get dai/daix as ethers
-  daix = new ethers.Contract(sf.tokens.fDAIx.address, ISuperToken.abi, owner);
-  dai = new ethers.Contract(sf.tokens.fDAI.address, TestToken.abi, owner);
+  daix = new ethers.Contract(
+    env.sf.tokens.fDAIx.address,
+    env.interfaces.ISuperToken.abi,
+    owner
+  );
+  dai = new ethers.Contract(
+    env.sf.tokens.fDAI.address,
+    env.interfaces.TestToken.abi,
+    owner
+  );
+  host = new ethers.Contract(
+    env.sf.host.address,
+    env.interfaces.ISuperfluid.abi,
+    owner
+  );
+  cfa = new ethers.Contract(
+    env.sf.agreements.cfa.address,
+    env.interfaces.IConstantFlowAgreementV1.abi,
+    owner
+  );
 
-  strollerFactory = await ethers.getContractFactory(
-    "ERC20StrollOut",
-    accounts[0]
-  );
-  const superTokenFactoryAddress = await sf.host.getSuperTokenFactory();
-  superTokenFactory = new ethers.Contract(
-    superTokenFactoryAddress,
-    ISuperTokenFactory.abi,
-    accounts[0]
-  );
-  const tokenProxyFactory = new ethers.ContractFactory(
-    NativeSuperTokenProxy.abi,
-    NativeSuperTokenProxy.bytecode,
-    accounts[0]
-  );
-  const _native = await tokenProxyFactory.deploy();
-  await _native.initialize("abc", "abc", "1");
-  await superTokenFactory.initializeCustomSuperToken(_native.address);
-  nativeToken = new ethers.Contract(
-    _native.address,
-    ISuperToken.abi,
-    accounts[0]
-  );
+  strollerFactory = await ethers.getContractFactory("ERC20StrollOut", owner);
   const mockERC20Factory = await ethers.getContractFactory("MockERC20", owner);
   mock20 = await mockERC20Factory.deploy("mock", "mk", 6);
-  const _m20 = await sf.createERC20Wrapper(mock20);
-  superMock20 = new ethers.Contract(_m20.address, ISuperToken.abi, owner);
+  const _m20 = await env.sf.createERC20Wrapper(mock20);
+  superMock20 = new ethers.Contract(
+    _m20.address,
+    env.interfaces.ISuperToken.abi,
+    owner
+  );
   await mock20.mint(user.address, parseUnits("1000", 25));
   strollOutInstance = await strollerFactory.deploy(mockManager.address);
   await dai.mint(user.address, parseUnits("1000", 18));
@@ -138,9 +112,9 @@ describe("#1 - ERC20StrollOut: SuperToken support ", function () {
     assert.ok(isSuperTokenSupported);
   });
   it("Case #1.2 - isSupportedSuperToken, native super token should fail", async () => {
-    const underlyingToken = await nativeToken.getUnderlyingToken();
+    const underlyingToken = await env.nativeToken.getUnderlyingToken();
     const isSuperTokenSupported = await strollOutInstance.isSupportedSuperToken(
-      nativeToken.address
+      env.nativeToken.address
     );
     assert.equal(
       underlyingToken,
@@ -166,7 +140,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
     const rightError = await helper.expectedRevert(
       strollOutInstance
         .connect(mockManager)
-        .topUp(accounts[1].address, nativeToken.address, 1),
+        .topUp(accounts[1].address, env.nativeToken.address, 1),
       "SuperToken not supported"
     );
     assert.ok(rightError);

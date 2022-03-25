@@ -3,28 +3,17 @@
 /* eslint-disable no-undef */
 
 const { parseUnits } = require("@ethersproject/units");
-const SuperfluidSDK = require("@superfluid-finance/js-sdk");
-const ISuperTokenFactory = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperTokenFactory");
-const ISuperfluid = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperfluid");
-const IConstantFlowAgreementV1 = require("@superfluid-finance/ethereum-contracts/build/contracts/IConstantFlowAgreementV1");
-const ISuperToken = require("@superfluid-finance/ethereum-contracts/build/contracts/ISuperToken");
-const TestToken = require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken");
-const NativeSuperTokenProxy = require("@superfluid-finance/ethereum-contracts/build/contracts/NativeSuperTokenProxy");
-const deployFramework = require("@superfluid-finance/ethereum-contracts/scripts/deploy-framework");
-const deployTestToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-test-token");
-const deploySuperToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-super-token");
+
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../helpers/helpers");
-const { getSeconds, expectedRevert } = require("../helpers/helpers");
+const devEnv = require("./utils/setEnv");
 
 const MIN_LOWER = 2;
 const MIN_UPPER = 7;
 
 let accounts, owner, user, streamReceiver;
-let sf, dai, daix, host, cfa, nativeToken, strollManager;
-const errorHandler = (err) => {
-  if (err) throw err;
-};
+let env;
+let dai, daix, host, cfa, strollManager;
 
 const getIndex = (user, superToken, liquidityToken) => {
   const encodedData = ethers.utils.defaultAbiCoder.encode(
@@ -35,9 +24,15 @@ const getIndex = (user, superToken, liquidityToken) => {
 };
 
 const createStream = async (supertoken, sender, receiver, flowRate) => {
-  const flow = await cfa.getFlow(supertoken.address, sender.address, receiver.address);
-  if(flow.flowRate.toString() === "0") {
-    const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
+  const flow = await cfa.getFlow(
+    supertoken.address,
+    sender.address,
+    receiver.address
+  );
+  if (flow.flowRate.toString() === "0") {
+    const cfaInterface = new ethers.utils.Interface(
+      env.interfaces.IConstantFlowAgreementV1.abi
+    );
     const callData = cfaInterface.encodeFunctionData("createFlow", [
       supertoken.address,
       receiver.address,
@@ -49,9 +44,15 @@ const createStream = async (supertoken, sender, receiver, flowRate) => {
 };
 
 const deleteStream = async (supertoken, sender, receiver) => {
-  const flow = await cfa.getFlow(supertoken.address, sender.address, receiver.address);
-  if(flow.flowRate > 0) {
-    const cfaInterface = new ethers.utils.Interface(IConstantFlowAgreementV1.abi);
+  const flow = await cfa.getFlow(
+    supertoken.address,
+    sender.address,
+    receiver.address
+  );
+  if (flow.flowRate > 0) {
+    const cfaInterface = new ethers.utils.Interface(
+      env.interfaces.IConstantFlowAgreementV1.abi
+    );
     const callData = cfaInterface.encodeFunctionData("deleteFlow", [
       supertoken.address,
       sender.address,
@@ -67,33 +68,26 @@ before(async () => {
   owner = accounts[0];
   user = accounts[3];
   streamReceiver = accounts[4];
-  // Deploy SF and needed tokens
-  await deployFramework(errorHandler, {
-    web3,
-    from: accounts[0].address,
-    newTestResolver: true,
-  });
-  await deployTestToken(errorHandler, [":", "fDAI"], {
-    web3,
-    from: accounts[0].address,
-  });
-  await deploySuperToken(errorHandler, [":", "fDAI"], {
-    web3,
-    from: accounts[0].address,
-  });
-  sf = new SuperfluidSDK.Framework({
-    web3,
-    version: "test",
-    tokens: ["fDAI"],
-  });
-  await sf.initialize();
+  env = await devEnv.deploySuperfluid(owner);
   // get dai/daix as ethers
-  daix = new ethers.Contract(sf.tokens.fDAIx.address, ISuperToken.abi, owner);
-  dai = new ethers.Contract(sf.tokens.fDAI.address, TestToken.abi, owner);
-  host = new ethers.Contract(sf.host.address, ISuperfluid.abi, owner);
+  daix = new ethers.Contract(
+    env.sf.tokens.fDAIx.address,
+    env.interfaces.ISuperToken.abi,
+    owner
+  );
+  dai = new ethers.Contract(
+    env.sf.tokens.fDAI.address,
+    env.interfaces.TestToken.abi,
+    owner
+  );
+  host = new ethers.Contract(
+    env.sf.host.address,
+    env.interfaces.ISuperfluid.abi,
+    owner
+  );
   cfa = new ethers.Contract(
-    sf.agreements.cfa.address,
-    IConstantFlowAgreementV1.abi,
+    env.sf.agreements.cfa.address,
+    env.interfaces.IConstantFlowAgreementV1.abi,
     owner
   );
 
@@ -103,44 +97,24 @@ before(async () => {
     owner
   );
   strollManager = await strollManagerFactory.deploy(
-    sf.agreements.cfa.address,
+    env.sf.agreements.cfa.address,
     MIN_LOWER,
     MIN_UPPER
   );
   strategy = await strollerFactory.deploy(strollManager.address);
-  const superTokenFactoryAddress = await sf.host.getSuperTokenFactory();
-  superTokenFactory = new ethers.Contract(
-    superTokenFactoryAddress,
-    ISuperTokenFactory.abi,
-    accounts[0]
-  );
-  const tokenProxyFactory = new ethers.ContractFactory(
-    NativeSuperTokenProxy.abi,
-    NativeSuperTokenProxy.bytecode,
-    accounts[0]
-  );
-  const _native = await tokenProxyFactory.deploy();
-  await _native.initialize("abc", "abc", "1");
-  await superTokenFactory.initializeCustomSuperToken(_native.address);
-  nativeToken = new ethers.Contract(
-    _native.address,
-    ISuperToken.abi,
-    accounts[0]
-  );
-
   await dai.mint(user.address, parseUnits("1000", 18));
 });
 
 beforeEach(async () => {
   strollManager = await strollManagerFactory.deploy(
-    sf.agreements.cfa.address,
+    env.sf.agreements.cfa.address,
     MIN_LOWER,
     MIN_UPPER
   );
   strategy = await strollerFactory.deploy(strollManager.address);
   await strollManager.addApprovedStrategy(strategy.address);
   deleteStream(daix, user, streamReceiver);
-  deleteStream(daix, streamReceiver,user);
+  deleteStream(daix, streamReceiver, user);
 });
 
 describe("#0 - StrollManager: Deployment and configurations", function () {
@@ -151,7 +125,11 @@ describe("#0 - StrollManager: Deployment and configurations", function () {
     const strollOwner = await strollManager.owner();
     assert.equal(minLower, MIN_LOWER, "minLower is not correct");
     assert.equal(minUpper, MIN_UPPER, "minUpper is not correct");
-    assert.equal(cfaAddress, sf.agreements.cfa.address, "cfa is not correct");
+    assert.equal(
+      cfaAddress,
+      env.sf.agreements.cfa.address,
+      "cfa is not correct"
+    );
     assert.equal(strollOwner, owner.address, "Owner is not correct");
   });
 });
@@ -160,7 +138,7 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
   it("Case #2.1 - Should register strategy", async () => {
     // reset manager
     strollManager = await strollManagerFactory.deploy(
-      sf.agreements.cfa.address,
+      env.sf.agreements.cfa.address,
       MIN_LOWER,
       MIN_UPPER
     );
@@ -182,7 +160,7 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
   it("Case #2.2 - Should check if strategy is approved", async () => {
     // reset manager
     strollManager = await strollManagerFactory.deploy(
-      sf.agreements.cfa.address,
+      env.sf.agreements.cfa.address,
       MIN_LOWER,
       MIN_UPPER
     );
@@ -205,7 +183,7 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
   it("Case #2.4 - Only owner can add/remove strategy", async () => {
     // reset manager
     strollManager = await strollManagerFactory.deploy(
-      sf.agreements.cfa.address,
+      env.sf.agreements.cfa.address,
       MIN_LOWER,
       MIN_UPPER
     );
@@ -225,7 +203,7 @@ describe("#3 - StrollManager: Register TopUps", function () {
   it("Case #3.1 - Should not register top up without correct data", async () => {
     // reset manager
     strollManager = await strollManagerFactory.deploy(
-      sf.agreements.cfa.address,
+      env.sf.agreements.cfa.address,
       MIN_LOWER,
       MIN_UPPER
     );
@@ -313,7 +291,7 @@ describe("#3 - StrollManager: Register TopUps", function () {
     await strollManager.addApprovedStrategy(strategy.address);
     const supportedSTRevert = await helper.expectedRevert(
       strollManager.createTopUp(
-        nativeToken.address,
+        env.nativeToken.address,
         strategy.address,
         dai.address,
         expiry,
@@ -562,8 +540,8 @@ describe("#5 - TopUps", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
 
     // approve superToken
@@ -573,7 +551,7 @@ describe("#5 - TopUps", function () {
     // get some superToken
     await daix.connect(user).upgrade(parseUnits("10", 18));
     await createStream(daix, user, streamReceiver, "100000000000000", "0x");
-    const expected = 100000000000000 * getSeconds(5);
+    const expected = 100000000000000 * helper.getSeconds(5);
     await helper.increaseTime(3600 * 24 * 5);
     const amount = await strollManager.checkTopUp(
       user.address,
@@ -590,8 +568,8 @@ describe("#5 - TopUps", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
     const amount = await strollManager.checkTopUp(
       user.address,
@@ -616,8 +594,8 @@ describe("#5 - TopUps", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
     // remove approval
     await dai.connect(user).approve(strategy.address, 0);
@@ -643,8 +621,8 @@ describe("#5 - TopUps", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
 
     // approve superToken
@@ -675,8 +653,8 @@ describe("#5 - TopUps", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
 
     // approve superToken
@@ -708,8 +686,8 @@ describe("#5 - TopUps", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
 
     // approve superToken
@@ -745,8 +723,8 @@ describe("#6 - peform Top Up", function () {
         strategy.address,
         dai.address,
         helper.getTimeStampNow() + helper.getSeconds(365),
-        getSeconds(5),
-        getSeconds(5)
+        helper.getSeconds(5),
+        helper.getSeconds(5)
       );
 
     // approve superToken
@@ -769,7 +747,7 @@ describe("#6 - peform Top Up", function () {
     assert.isAbove(after, balance, "balance should go up");
   });
   it("Case #6.2 - should revert if no topAmount", async () => {
-    await expectedRevert(
+    await helper.expectedRevert(
       strollManager.performTopUp(user.address, daix.address, dai.address),
       "TopUp check failed"
     );
