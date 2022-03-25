@@ -250,7 +250,6 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
       .connect(mockManager)
       .topUp(user.address, superMock20.address, transferAmount);
     const TopUpEvent = await helper.getEvents(tx, "TopUp");
-    // event TopUp(address indexed user, address indexed superToken, uint256 superTokenAmount);
     assert.equal(TopUpEvent[0].args.user, user.address, "not user");
     assert.equal(
       TopUpEvent[0].args.superToken,
