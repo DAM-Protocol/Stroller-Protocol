@@ -515,5 +515,7 @@ describe("#5 - TopUps", function () {
   it("Case #5.1 - checkTopUp", async () => {});
   it("Case #5.2 - checkTopUp without stream", async () =>{});
   it("Case #5.3 - checkTopUp without data should return zero", async () =>{});
-  it("Case #5.4 - checkTopUp with netFlowPositive should return zero", async () =>{});
+  it("Case #5.4 - checkTopUp without approved balance", async () =>{});
+  it("Case #5.5 - checkTopUp without balance", async () =>{});
+  it("Case #5.6 - checkTopUp with netFlowPositive should return zero", async () =>{});
 });
