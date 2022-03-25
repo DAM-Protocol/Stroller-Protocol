@@ -44,6 +44,10 @@ const increaseTime = async (seconds) => {
   await network.provider.send("evm_mine");
 };
 
+const resetTime = async (seconds) => {
+  increaseTime(getTimeStampNow() - await currentBlockTimestamp())
+}
+
 const setNextBlockTimestamp = async (timestamp) => {
   await network.provider.send("evm_setNextBlockTimestamp", [timestamp]);
   await network.provider.send("evm_mine");
@@ -74,6 +78,7 @@ module.exports = {
   getSeconds,
   increaseTime,
   currentBlockTimestamp,
+  resetTime,
   setNextBlockTimestamp,
   impersonateAccounts,
   getEvents,

@@ -197,6 +197,10 @@ contract StrollManager is Ownable {
         emit PerformedTopUp(_index, topUpAmount);
     }
 
+    function isApprovedStrategy(address strategy) external view returns(bool) {
+        return approvedStrategies[strategy];
+    }
+
     function addApprovedStrategy(address strategy) external onlyOwner {
         require(strategy != address(0), "empty strategy");
         approvedStrategies[strategy] = true;
@@ -208,10 +212,6 @@ contract StrollManager is Ownable {
             delete approvedStrategies[strategy];
             emit RemovedApprovedStrategy(strategy);
         }
-    }
-
-    function getApprovedStrategy(address strategy) external returns(bool) {
-        return approvedStrategies[strategy];
     }
 
     function deleteTopUpByIndex(bytes32 _index) public {
