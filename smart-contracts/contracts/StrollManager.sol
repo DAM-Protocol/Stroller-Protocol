@@ -1,18 +1,15 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.4;
 
-// import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IERC20Mod.sol";
-import {OpsReady, IOps} from "./keepers/OpsReady.sol";
-import {IConstantFlowAgreementV1} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
-
+import { IConstantFlowAgreementV1 } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 
 // solhint-disable not-rely-on-time
-contract StrollManager is Ownable, OpsReady {
-    // Modify this struct later to support multiple strategies in the future
+contract StrollManager is Ownable {
+
     struct TopUp {
         address user;
         ISuperToken superToken;
@@ -25,12 +22,11 @@ contract StrollManager is Ownable, OpsReady {
 
     uint64 public minLower;
     uint64 public minUpper;
-    mapping(bytes32 => TopUp) private topUps; // user => superToken => uint
+    mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
+    mapping(address => bool) public approvedStrategies;
 
-    // For testnet deployment
     // solhint-disable-next-line
     IConstantFlowAgreementV1 public immutable CFA_V1;
-    // IConstantFlowAgreementV1(0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873);
 
     event TopUpCreated(
         bytes32 indexed id,
@@ -38,7 +34,7 @@ contract StrollManager is Ownable, OpsReady {
         address indexed superToken,
         address strategy,
         address liquidityToken,
-        uint256 time,
+        uint256 expiry,
         uint256 lowerLimit,
         uint256 upperLimit
     );
@@ -51,14 +47,15 @@ contract StrollManager is Ownable, OpsReady {
         address liquidityToken
     );
 
-    event PerformedTopUp(bytes32 indexed id);
+    event PerformedTopUp(bytes32 indexed id, uint256 topUpAmount);
+    event AddedApprovedStrategy(address indexed strategy);
+    event RemovedApprovedStrategy(address indexed strategy);
 
     constructor(
         address _icfa,
-        address _ops,
         uint64 _minLower,
         uint64 _minUpper
-    ) OpsReady(_ops) {
+    ) {
         CFA_V1 = IConstantFlowAgreementV1(_icfa);
         minLower = _minLower;
         minUpper = _minUpper;
@@ -82,28 +79,19 @@ contract StrollManager is Ownable, OpsReady {
     ) external {
         require(
             _superToken != address(0) &&
-                _strategy != address(0) &&
-                _liquidityToken != address(0),
+            _strategy != address(0) &&
+            _liquidityToken != address(0),
             "Null Address"
         );
 
         require(_expiry > block.timestamp, "Invalid time");
         require(_lowerLimit >= minLower, "Increase lower limit");
         require(_upperLimit >= minUpper, "Increase upper limit");
+        require(approvedStrategies[_strategy], "strategy not allowed");
+        require(IStrategy(_strategy).isSupportedSuperToken(ISuperToken(_superToken)), "super token not supported");
 
         // check if topUp already exists for given user and superToken
         bytes32 index = getTopUpIndex(msg.sender, _superToken, _liquidityToken);
-
-        if (topUps[index].user == address(0)) {
-            //new TopUp
-            IOps(ops).createTaskNoPrepayment(
-                address(this),
-                this.gelatoPerformTopUp.selector,
-                address(this),
-                abi.encodeWithSelector(this.gelatoCheckTopUp.selector, index),
-                ETH
-            );
-        }
 
         TopUp memory topUp = TopUp( // create new TopUp or update topup
             msg.sender,
@@ -133,46 +121,21 @@ contract StrollManager is Ownable, OpsReady {
         address _superToken,
         address _liquidityToken
     )
-        public
-        view
-        returns (
-            address,
-            ISuperToken,
-            IStrategy,
-            address,
-            uint64,
-            uint64,
-            uint64
-        )
+    public
+    view
+    returns (TopUp memory)
     {
-        bytes32 index = getTopUpIndex(_user, _superToken, _liquidityToken);
-        return getTopUpByIndex(index);
+        return getTopUpByIndex(
+            getTopUpIndex(_user, _superToken, _liquidityToken)
+        );
     }
 
     function getTopUpByIndex(bytes32 _index)
-        public
-        view
-        returns (
-            address,
-            ISuperToken,
-            IStrategy,
-            address,
-            uint64,
-            uint64,
-            uint64
-        )
+    public
+    view
+    returns (TopUp memory)
     {
-        TopUp memory topUp = topUps[_index];
-
-        return (
-            topUp.user,
-            topUp.superToken,
-            topUp.strategy,
-            topUp.liquidityToken,
-            topUp.expiry,
-            topUp.lowerLimit,
-            topUp.upperLimit
-        );
+        return topUps[_index];
     }
 
     function checkTopUp(
@@ -180,16 +143,17 @@ contract StrollManager is Ownable, OpsReady {
         address _superToken,
         address _liquidityToken
     ) public view returns (uint256) {
-        bytes32 index = getTopUpIndex(_user, _superToken, _liquidityToken);
-        return checkTopUp(index);
+        return checkTopUpByIndex(
+            getTopUpIndex(_user, _superToken, _liquidityToken)
+        );
     }
 
-    function checkTopUp(bytes32 _index) public view returns (uint256 amount) {
+    function checkTopUpByIndex(bytes32 _index) public view returns (uint256 amount) {
         TopUp memory topUp = topUps[_index];
 
         if (
             topUp.user == address(0) || // Task exists and has a valid user
-            topUp.expiry > block.timestamp || // Task exists and current time is before task end time
+            topUp.expiry <= block.timestamp || // Task exists and current time is before task end time
             IERC20(topUp.liquidityToken).allowance(
                 topUp.user,
                 address(topUp.strategy) // contract is allowed to spend
@@ -205,13 +169,7 @@ contract StrollManager is Ownable, OpsReady {
             uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
 
             if (superBalance <= (positiveFlowRate * topUp.lowerLimit)) {
-                uint256 topUpAmount = positiveFlowRate * topUp.upperLimit;
-                return
-                    topUpAmount /
-                    10 **
-                        (18 -
-                            IERC20Mod(topUp.superToken.getUnderlyingToken())
-                                .decimals());
+                return positiveFlowRate * topUp.upperLimit;
             }
         }
 
@@ -223,12 +181,11 @@ contract StrollManager is Ownable, OpsReady {
         address _superToken,
         address _liquidityToken
     ) external {
-        bytes32 index = getTopUpIndex(_user, _superToken, _liquidityToken);
-        performTopUp(index);
+        performTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
     }
 
-    function performTopUp(bytes32 _index) public {
-        uint256 topUpAmount = checkTopUp(_index);
+    function performTopUpByIndex(bytes32 _index) public {
+        uint256 topUpAmount = checkTopUpByIndex(_index);
         require(topUpAmount > 0, "TopUp check failed");
 
         TopUp memory topUp = topUps[_index];
@@ -237,77 +194,33 @@ contract StrollManager is Ownable, OpsReady {
             ISuperToken(topUp.superToken),
             topUpAmount
         );
-        emit PerformedTopUp(_index);
+        emit PerformedTopUp(_index, topUpAmount);
     }
 
-    function gelatoCheckTopUp(bytes32 _index)
-        public
-        view
-        returns (bool canExec, bytes memory execPayload)
-    {
-        TopUp memory topUp = topUps[_index];
+    function isApprovedStrategy(address strategy) external view returns(bool) {
+        return approvedStrategies[strategy];
+    }
 
-        if (
-            topUp.user == address(0) || // Task exists and has a valid user
-            topUp.expiry > block.timestamp || // Task exists and current time is before task end time
-            IERC20(topUp.liquidityToken).allowance(
-                topUp.user,
-                address(topUp.strategy) // contract is allowed to spend
-            ) ==
-            0 ||
-            IERC20(topUp.liquidityToken).balanceOf(topUp.user) == 0 // check user balance
-        ) return (false, bytes(abi.encode(0)));
+    function addApprovedStrategy(address strategy) external onlyOwner {
+        require(strategy != address(0), "empty strategy");
+        approvedStrategies[strategy] = true;
+        emit AddedApprovedStrategy(strategy);
+    }
 
-        int96 flowRate = CFA_V1.getNetFlow(topUp.superToken, topUp.user);
-
-        if (flowRate < 0) {
-            uint256 superBalance = topUp.superToken.balanceOf(topUp.user);
-            uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
-
-            if (superBalance <= ((positiveFlowRate * topUp.lowerLimit) / 2)) {
-                return (
-                    true,
-                    abi.encodeWithSelector(
-                        this.gelatoPerformTopUp.selector,
-                        _index
-                    )
-                );
-            }
+    function removeApprovedStrategy(address strategy) external onlyOwner {
+        if(approvedStrategies[strategy]) {
+            delete approvedStrategies[strategy];
+            emit RemovedApprovedStrategy(strategy);
         }
-
-        return (false, bytes(abi.encode(0)));
     }
 
-    function gelatoPerformTopUp(bytes32 _index) public onlyOps {
-        performTopUp(_index); //perform TopUp
-
-        (uint256 fee, address feeToken) = IOps(ops).getFeeDetails(); //pay fee to gelato
-        _transfer(fee, feeToken);
-    }
-
-    function deleteTopUp(bytes32 _index) public {
+    function deleteTopUpByIndex(bytes32 _index) public {
         TopUp memory topUp = topUps[_index];
-        require(topUp.expiry > 0, "TopUp does not exist");
         require(
             topUp.user == msg.sender || topUp.expiry < block.timestamp,
             "Can't delete TopUp"
         );
         delete topUps[_index];
-
-        // delete task on gelato
-        bytes32 resolverHash = getResolverHash(
-            address(this),
-            abi.encodeWithSelector(this.gelatoCheckTopUp.selector, _index)
-        );
-        bytes32 taskId = getTaskId(
-            address(this),
-            address(this),
-            this.gelatoCheckTopUp.selector,
-            false,
-            ETH,
-            resolverHash
-        );
-        ops.cancelTask(taskId);
 
         emit TopUpDeleted(
             _index,
@@ -323,16 +236,15 @@ contract StrollManager is Ownable, OpsReady {
         address _superToken,
         address _liquidityToken
     ) public {
-        require(_user != address(0), "0 Address not allowed");
-        require(_superToken != address(0), "0 Address not allowed");
-        bytes32 index = getTopUpIndex(_user, _superToken, _liquidityToken);
-        deleteTopUp(index);
+        deleteTopUpByIndex(
+            getTopUpIndex(_user, _superToken, _liquidityToken)
+        );
     }
 
     function deleteBatch(bytes32[] calldata _indices) public {
         // delete multiple top ups
         for (uint256 i = 0; i < _indices.length; i++) {
-            deleteTopUp(_indices[i]);
+            deleteTopUpByIndex(_indices[i]);
         }
     }
 }

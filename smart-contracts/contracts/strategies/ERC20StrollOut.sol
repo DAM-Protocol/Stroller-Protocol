@@ -5,18 +5,22 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IERC20Mod.sol";
-import "hardhat/console.sol";
 
 contract ERC20StrollOut is Ownable, IStrategy {
     using SafeERC20 for IERC20Mod;
 
-    address private strollManager;
+    address public strollManager;
+
+    event StrollManagerChanged(address indexed oldStrollManager, address indexed strollManager);
 
     constructor(address _strollManager) {
+        require(_strollManager != address(0), "zero address");
         strollManager = _strollManager;
     }
 
     function changeStrollManager(address _newStrollManager) external onlyOwner {
+        require(_newStrollManager != address(0), "zero address");
+        emit StrollManagerChanged(strollManager, _newStrollManager);
         strollManager = _newStrollManager;
     }
 
@@ -34,18 +38,19 @@ contract ERC20StrollOut is Ownable, IStrategy {
         ISuperToken _superToken,
         uint256 _superTokenAmount
     ) external override {
-        // Only `StrollManager` should be able to call this method
+        // Only `StrollManager` can call this method
         require(msg.sender == strollManager, "Caller not authorised");
+        require(isSupportedSuperToken(_superToken), "SuperToken not supported");
 
         IERC20Mod underlyingToken = IERC20Mod(_superToken.getUnderlyingToken());
 
         (
-            uint256 underlyingAmount,
-            uint256 adjustedAmount
+        uint256 underlyingAmount,
+        uint256 adjustedAmount
         ) = _toUnderlyingAmount(
-                _superTokenAmount,
-                underlyingToken.decimals()
-            );
+            _superTokenAmount,
+            underlyingToken.decimals()
+        );
 
         // Transfer the underlying tokens from the user
         underlyingToken.safeTransferFrom(
@@ -56,7 +61,7 @@ contract ERC20StrollOut is Ownable, IStrategy {
 
         // Giving the Supertoken max allowance for upgrades if that hasn't been done before
         if (
-           underlyingToken.allowance(
+            underlyingToken.allowance(
                 address(this),
                 address(_superToken)
             ) == 0
@@ -69,32 +74,24 @@ contract ERC20StrollOut is Ownable, IStrategy {
         // Upgrade the necessary amount of supertokens and transfer them to a user.
         // We are assuming that `upgradeTo` function will revert upon failure of supertoken transfer to user.
         // If not, we need to check for the same after calling this method.
-        _superToken.upgradeTo(_user, adjustedAmount, " ");
+        _superToken.upgradeTo(_user, adjustedAmount, "");
 
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 
     function isSupportedSuperToken(ISuperToken _superToken)
-        public
-        view
-        override
-        returns (bool)
+    public
+    view
+    override
+    returns (bool)
     {
-        // All supertokens are supported except native supertokens.
-        // Here we are assuming a call to the method `getUnderlyingToken` will fail for a native supertoken
-        try _superToken.getUnderlyingToken() returns (address) {
-            return true;
-        } catch (
-            bytes memory /* _error */
-        ) {
-            return false;
-        }
+        return _superToken.getUnderlyingToken() != address(0);
     }
 
     function _toUnderlyingAmount(uint256 _amount, uint256 _underlyingDecimals)
-        internal
-        pure
-        returns (uint256 _underlyingAmount, uint256 _adjustedAmount)
+    internal
+    pure
+    returns (uint256 _underlyingAmount, uint256 _adjustedAmount)
     {
         uint256 factor;
         if (_underlyingDecimals < 18) {
@@ -113,5 +110,9 @@ contract ERC20StrollOut is Ownable, IStrategy {
         } else {
             _underlyingAmount = _adjustedAmount = _amount;
         }
+    }
+
+    function emergencyWithdraw(address token) public onlyOwner {
+        IERC20(token).transfer(msg.sender, IERC20(token).balanceOf(address(this)));
     }
 }
