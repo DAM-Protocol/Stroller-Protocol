@@ -74,7 +74,9 @@ contract ERC20StrollOut is Ownable, IStrategy {
         // Upgrade the necessary amount of supertokens and transfer them to a user.
         // We are assuming that `upgradeTo` function will revert upon failure of supertoken transfer to user.
         // If not, we need to check for the same after calling this method.
-        _superToken.upgradeTo(_user, adjustedAmount, "");
+        _superToken.upgrade(adjustedAmount);
+        _superToken.transfer(_user, adjustedAmount);
+
 
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }

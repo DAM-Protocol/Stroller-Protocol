@@ -41,11 +41,7 @@ module.exports = {
       },
       saveDeployments: false,
     },
-    polygon: {
-      url: process.env.POLYGON_NODE_URL,
-      accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
-      saveDeployments: true,
-    },
+
     mumbai: {
       url: process.env.MUMBAI_NODE_URL,
       accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
@@ -68,7 +64,7 @@ module.exports = {
     showTimeSpent: true,
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_KEY, // Change this to POLYGONSCAN_KEY when deploying on Polygon mainnet or mumbai testnet.
+    apiKey: process.env.POLYGONSCAN_KEY, // Change this to POLYGONSCAN_KEY when deploying on Polygon mainnet or mumbai testnet.
   },
   contractSizer: {
     alphaSort: true,

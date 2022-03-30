@@ -11,7 +11,7 @@ const errorHandler = (err) => {
   if (err) throw err;
 };
 // aliases to accounts
-let accounts, owner, mockManager, nonManager, user;
+let accounts, owner, mockManager, nonManager, user, mockReceiverContractInstance;
 let dai, daix, mock20, superMock20, env;
 
 let strollerFactory;
@@ -58,6 +58,12 @@ before(async () => {
   await mock20.mint(user.address, parseUnits("1000", 25));
   strollOutInstance = await strollerFactory.deploy(mockManager.address);
   await dai.mint(user.address, parseUnits("1000", 18));
+
+  const mockReceiverContract = await ethers.getContractFactory("MockReceiverContract", owner);
+  mockReceiverContractInstance = await mockReceiverContract.deploy(
+      env.sf.host.address,
+      env.sf.agreements.cfa.address
+  );
 });
 
 describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
