@@ -13,7 +13,7 @@ const MIN_UPPER = 7;
 
 let accounts, owner, user, streamReceiver;
 let env;
-let dai, daix, host, cfa, strollManager;
+let dai, daix, host, cfa, strollManager, mockReceiverContractInstance;
 
 const getIndex = (user, superToken, liquidityToken) => {
   const encodedData = ethers.utils.defaultAbiCoder.encode(
@@ -103,6 +103,15 @@ before(async () => {
   );
   strategy = await strollerFactory.deploy(strollManager.address);
   await dai.mint(user.address, parseUnits("1000", 18));
+
+  const mockReceiverContract = await ethers.getContractFactory(
+    "MockReceiverContract",
+    owner
+  );
+  mockReceiverContractInstance = await mockReceiverContract.deploy(
+    env.sf.host.address,
+    env.sf.agreements.cfa.address
+  );
 });
 
 beforeEach(async () => {
@@ -714,7 +723,7 @@ describe("#5 - TopUps", function () {
   });
 });
 
-describe("#6 - peform Top Up", function () {
+describe("#6 - perform Top Up", function () {
   it("Case #6.1 - TopUp", async () => {
     await strollManager
       .connect(user)
@@ -746,7 +755,51 @@ describe("#6 - peform Top Up", function () {
     const after = await daix.balanceOf(user.address);
     assert.isAbove(after, balance, "balance should go up");
   });
-  it("Case #6.2 - should revert if no topAmount", async () => {
+  it("Case #6.2 - TopUp - Smart wallet", async () => {
+    const transferAmount = parseUnits("100", 18);
+    await dai.mint(mockReceiverContractInstance.address, parseUnits("100", 18));
+    await mockReceiverContractInstance.approve(
+      dai.address,
+      strategy.address,
+      parseUnits("100", 18)
+    );
+    await mockReceiverContractInstance.approve(
+      dai.address,
+      daix.address,
+      parseUnits("100", 18)
+    );
+    await mockReceiverContractInstance.createTopUp(
+      strollManager.address,
+      daix.address,
+      strategy.address,
+      dai.address,
+      helper.getTimeStampNow() + helper.getSeconds(365),
+      helper.getSeconds(5),
+      helper.getSeconds(5)
+    );
+    // get some superToken
+    await mockReceiverContractInstance.upgrade(
+      daix.address,
+      parseUnits("10", 18)
+    );
+    await mockReceiverContractInstance.createFlow(
+      daix.address,
+      accounts[7].address,
+      100000000000000
+    );
+
+    await helper.increaseTime(3600 * 24 * 5);
+    const balance = await daix.balanceOf(mockReceiverContractInstance.address);
+    const tx = await strollManager.performTopUp(
+      mockReceiverContractInstance.address,
+      daix.address,
+      dai.address
+    );
+    await helper.getEvents(tx, "PerformedTopUp");
+    const after = await daix.balanceOf(mockReceiverContractInstance.address);
+    assert.isAbove(after, balance, "balance should go up");
+  });
+  it("Case #6.3 - should revert if no topAmount", async () => {
     await helper.expectedRevert(
       strollManager.performTopUp(user.address, daix.address, dai.address),
       "TopUp check failed"

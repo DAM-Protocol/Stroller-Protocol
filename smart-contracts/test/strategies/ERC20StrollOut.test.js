@@ -11,7 +11,12 @@ const errorHandler = (err) => {
   if (err) throw err;
 };
 // aliases to accounts
-let accounts, owner, mockManager, nonManager, user, mockReceiverContractInstance;
+let accounts,
+  owner,
+  mockManager,
+  nonManager,
+  user,
+  mockReceiverContractInstance;
 let dai, daix, mock20, superMock20, env;
 
 let strollerFactory;
@@ -59,10 +64,13 @@ before(async () => {
   strollOutInstance = await strollerFactory.deploy(mockManager.address);
   await dai.mint(user.address, parseUnits("1000", 18));
 
-  const mockReceiverContract = await ethers.getContractFactory("MockReceiverContract", owner);
+  const mockReceiverContract = await ethers.getContractFactory(
+    "MockReceiverContract",
+    owner
+  );
   mockReceiverContractInstance = await mockReceiverContract.deploy(
-      env.sf.host.address,
-      env.sf.agreements.cfa.address
+    env.sf.host.address,
+    env.sf.agreements.cfa.address
   );
 });
 
@@ -221,6 +229,42 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
       "transfer amount exceeds balance"
     );
     assert.ok(rigthError);
+  });
+  it("Case #2.4 - Should perform topUp() - smart wallet", async () => {
+    const transferAmount = parseUnits("100", 18);
+    await dai.mint(mockReceiverContractInstance.address, parseUnits("100", 18));
+    await mockReceiverContractInstance.approve(
+      dai.address,
+      strollOutInstance.address,
+      parseUnits("100", 18)
+    );
+    const tx = await strollOutInstance
+      .connect(mockManager)
+      .topUp(
+        mockReceiverContractInstance.address,
+        daix.address,
+        transferAmount
+      );
+    const TopUpEvent = await helper.getEvents(tx, "TopUp");
+    assert.equal(
+      TopUpEvent[0].args.user,
+      mockReceiverContractInstance.address,
+      "not wallet"
+    );
+    assert.equal(TopUpEvent[0].args.superToken, daix.address, "not superToken");
+    assert.equal(
+      TopUpEvent[0].args.superTokenAmount.toString(),
+      transferAmount,
+      "not superToken"
+    );
+    const superTokenBalance = await daix.balanceOf(
+      mockReceiverContractInstance.address
+    );
+    assert.equal(
+      superTokenBalance.toString(),
+      transferAmount,
+      "not right final balance"
+    );
   });
 });
 
