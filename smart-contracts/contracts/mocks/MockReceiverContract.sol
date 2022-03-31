@@ -11,6 +11,8 @@ IConstantFlowAgreementV1
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "../interfaces/IStrollManager.sol";
+
 contract MockReceiverContract {
 
     IConstantFlowAgreementV1 immutable public cfa;
@@ -29,8 +31,8 @@ contract MockReceiverContract {
     }
 
     function createFlow(
-        address receiver,
         ISuperToken token,
+        address receiver,
         int96 flowRate
     ) public {
         host.callAgreement(
@@ -44,5 +46,21 @@ contract MockReceiverContract {
             ),
             "0x"
         );
+    }
+
+    function upgrade(ISuperToken token, uint256 amount) external {
+        token.upgrade(amount);
+    }
+
+    function createTopUp(
+        IStrollManager manager,
+        address superToken,
+        address strategy,
+        address liquidityToken,
+        uint64 expiry,
+        uint64 lowerLimit,
+        uint64 upperLimit
+    ) public {
+        manager.createTopUp(superToken, strategy, liquidityToken, expiry, lowerLimit, upperLimit);
     }
 }
