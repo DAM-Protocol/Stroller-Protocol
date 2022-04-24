@@ -188,7 +188,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
       "not right final balance"
     );
   });
-  it("Case #2.3.1 - Should not topUp() if allowance not enough", async () => {
+  it.only("Case #2.3.1 - Should not topUp() if allowance not enough", async () => {
     const transferAmount = parseUnits("50", 18);
     await dai.connect(user).approve(strollOutInstance.address, 0);
     const removedApproval = await dai.allowance(
@@ -205,8 +205,9 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
       strollOutInstance
         .connect(mockManager)
         .topUp(user.address, daix.address, parseUnits("51", 18)),
-      "transfer amount exceeds allowance"
+      "ERC20: insufficient allowance"
     );
+
     assert.ok(rigthError);
   });
   it("Case #2.3.2 - Should not topUp() if balance not enough", async () => {

@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IERC20Mod.sol";
 
+/// @dev NOTE: re-factoring is required to make this contract adhere to the solidity style guide.
+ 
 contract ERC20StrollOut is Ownable, IStrategy {
     using SafeERC20 for IERC20Mod;
 
