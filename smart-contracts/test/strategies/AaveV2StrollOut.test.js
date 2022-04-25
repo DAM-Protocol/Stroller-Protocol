@@ -2,14 +2,21 @@
 /* eslint-disable node/no-extraneous-require */
 /* eslint-disable no-undef */
 
+const { expect } = require("chai");
+const { ethers, waffle } = require("hardhat");
+const { provider, loadFixture, deployMockContract } = waffle;
 const { parseUnits } = require("@ethersproject/units");
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../../helpers/helpers");
 const devEnv = require("./../utils/setEnv");
+const LendingPoolProviderABI = require("../../artifacts/contracts/interfaces/IAaveV2.sol/ILendingPoolAddressesProvider.json");
+const ProtocolDataABI = require("../../artifacts/contracts/interfaces/IAaveV2.sol/IProtocolDataProvider.json");
+const LendingPoolABI = require("../../artifacts/contracts/interfaces/IAaveV2.sol/ILendingPool.json");
 
 const errorHandler = (err) => {
   if (err) throw err;
 };
+
 // aliases to accounts
 let accounts,
   owner,
@@ -17,10 +24,12 @@ let accounts,
   nonManager,
   user,
   mockReceiverContractInstance;
-let dai, daix, mock20, superMock20, env;
+let mockERC20Factory;
+let dai, daix, mock20, mockaToken, aDAI, superMock20, env;
 
 let strollerFactory;
 let strollOutInstance;
+let mockLendingPoolProvider, mockProtocolData, mockLendingPool;
 
 before(async () => {
   accounts = await ethers.getSigners();
@@ -29,6 +38,7 @@ before(async () => {
   nonManager = accounts[2];
   user = accounts[3];
   env = await devEnv.deploySuperfluid(owner);
+
   // get dai/daix as ethers
   daix = new ethers.Contract(
     env.sf.tokens.fDAIx.address,
@@ -51,18 +61,33 @@ before(async () => {
     owner
   );
 
-  strollerFactory = await ethers.getContractFactory("ERC20StrollOut", owner);
-  const mockERC20Factory = await ethers.getContractFactory("MockERC20", owner);
+  strollerFactory = await ethers.getContractFactory("AaveV2StrollOut", owner);
+  mockERC20Factory = await ethers.getContractFactory("MockERC20", owner);
   mock20 = await mockERC20Factory.deploy("mock", "mk", 6);
   const _m20 = await env.sf.createERC20Wrapper(mock20);
+  aDAI = await mockERC20Factory.deploy("Aave DAI", "aDAI", 18);
   superMock20 = new ethers.Contract(
     _m20.address,
     env.interfaces.ISuperToken.abi,
     owner
   );
+
   await mock20.mint(user.address, parseUnits("1000", 25));
-  strollOutInstance = await strollerFactory.deploy(mockManager.address);
   await dai.mint(user.address, parseUnits("1000", 18));
+  await aDAI.mint(user.address, parseUnits("1000", 18));
+
+  mockLendingPoolProvider = await deployMockContract(
+    owner,
+    LendingPoolProviderABI.abi
+  );
+  mockProtocolData = await deployMockContract(owner, ProtocolDataABI.abi);
+  mockLendingPool = await deployMockContract(owner, LendingPoolABI.abi);
+
+  strollOutInstance = await strollerFactory.deploy(
+    mockManager.address,
+    mockLendingPoolProvider.address,
+    mockProtocolData.address
+  );
 
   const mockReceiverContract = await ethers.getContractFactory(
     "MockReceiverContract",
@@ -74,7 +99,7 @@ before(async () => {
   );
 });
 
-describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
+describe("#0 - AaveV2StrollOut: Deployment and configurations", function () {
   it("Case #0.1 - Should deploy Strategy with correct data", async () => {
     const strollManager = await strollOutInstance.strollManager();
     const strollOwner = await strollOutInstance.owner();
@@ -85,8 +110,32 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
     );
     assert.equal(strollOwner, owner.address, "Owner is not correct");
 
-    const rightError = await helper.expectedRevert(
-      strollerFactory.deploy(zeroAddress),
+    let rightError = await helper.expectedRevert(
+      strollerFactory.deploy(
+        zeroAddress,
+        mockLendingPoolProvider.address,
+        mockProtocolData.address
+      ),
+      "zero address"
+    );
+    assert.ok(rightError);
+
+    rightError = await helper.expectedRevert(
+      strollerFactory.deploy(
+        mockManager.address,
+        zeroAddress,
+        mockProtocolData.address
+      ),
+      "zero address"
+    );
+    assert.ok(rightError);
+
+    rightError = await helper.expectedRevert(
+      strollerFactory.deploy(
+        mockManager.address,
+        mockLendingPoolProvider.address,
+        zeroAddress
+      ),
       "zero address"
     );
     assert.ok(rightError);
@@ -97,6 +146,7 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
       tx,
       "StrollManagerChanged"
     );
+
     assert.isAbove(StrollManagerChanged.length, 0, "No event");
     assert.equal(
       StrollManagerChanged[0].args.oldStrollManager,
@@ -125,8 +175,13 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
   });
 });
 
-describe("#1 - ERC20StrollOut: SuperToken support ", function () {
+describe("#1 - AaveV2StrollOut: SuperToken support ", function () {
   it("Case #1.1 - isSupportedSuperToken", async () => {
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(dai.address)
+      .returns(aDAI.address, zeroAddress, zeroAddress);
     const isSuperTokenSupported = await strollOutInstance.isSupportedSuperToken(
       daix.address
     );
@@ -148,7 +203,11 @@ describe("#1 - ERC20StrollOut: SuperToken support ", function () {
 
 describe("#2 - ERC20StrollOut: TopUp", function () {
   it("Case #2.1 - Should not topUp from non manager", async () => {
-    strollOutInstance = await strollerFactory.deploy(mockManager.address);
+    strollOutInstance = await strollerFactory.deploy(
+      mockManager.address,
+      mockLendingPoolProvider.address,
+      mockProtocolData.address
+    );
     const rightError = await helper.expectedRevert(
       strollOutInstance
         .connect(nonManager)
@@ -168,7 +227,20 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
   });
   it("Case #2.3 - Should perform topUp()", async () => {
     const transferAmount = parseUnits("500", 18);
-    await dai.connect(user).approve(strollOutInstance.address, transferAmount);
+    await aDAI.connect(user).approve(strollOutInstance.address, transferAmount);
+
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(dai.address)
+      .returns(aDAI.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(transferAmount);
+    await dai.mint(strollOutInstance.address, transferAmount);
+
     const tx = await strollOutInstance
       .connect(mockManager)
       .topUp(user.address, daix.address, transferAmount);
@@ -190,8 +262,18 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
   });
   it("Case #2.3.1 - Should not topUp() if allowance not enough", async () => {
     const transferAmount = parseUnits("50", 18);
-    await dai.connect(user).approve(strollOutInstance.address, 0);
-    const removedApproval = await dai.allowance(
+    await aDAI.connect(user).approve(strollOutInstance.address, 0);
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(dai.address)
+      .returns(aDAI.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(transferAmount);
+    const removedApproval = await aDAI.allowance(
       user.address,
       strollOutInstance.address
     );
@@ -200,7 +282,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
       "0",
       "approve clean up didn't work"
     );
-    await dai.connect(user).approve(strollOutInstance.address, transferAmount);
+    await aDAI.connect(user).approve(strollOutInstance.address, transferAmount);
     const rigthError = await helper.expectedRevert(
       strollOutInstance
         .connect(mockManager)
@@ -212,8 +294,18 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
   });
   it("Case #2.3.2 - Should not topUp() if balance not enough", async () => {
     const transferAmount = parseUnits("1000", 18);
-    await dai.connect(user).approve(strollOutInstance.address, 0);
-    const removedApproval = await dai.allowance(
+    await aDAI.connect(user).approve(strollOutInstance.address, 0);
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(dai.address)
+      .returns(aDAI.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(transferAmount);
+    const removedApproval = await aDAI.allowance(
       user.address,
       strollOutInstance.address
     );
@@ -222,7 +314,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
       "0",
       "approve clean up didn't work"
     );
-    await dai.connect(user).approve(strollOutInstance.address, transferAmount);
+    await aDAI.connect(user).approve(strollOutInstance.address, transferAmount);
     const rigthError = await helper.expectedRevert(
       strollOutInstance
         .connect(mockManager)
@@ -233,12 +325,23 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
   });
   it("Case #2.4 - Should perform topUp() - smart wallet", async () => {
     const transferAmount = parseUnits("100", 18);
-    await dai.mint(mockReceiverContractInstance.address, parseUnits("100", 18));
+    await aDAI.mint(mockReceiverContractInstance.address, transferAmount);
     await mockReceiverContractInstance.approve(
-      dai.address,
+      aDAI.address,
       strollOutInstance.address,
-      parseUnits("100", 18)
+      transferAmount
     );
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(dai.address)
+      .returns(aDAI.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(transferAmount);
+    await dai.mint(strollOutInstance.address, transferAmount);
     const tx = await strollOutInstance
       .connect(mockManager)
       .topUp(
@@ -269,15 +372,33 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
   });
 });
 
-describe("#3 - ERC20StrollOut: underlying token decimals", function () {
+describe("#3 - AaveV2StrollOut: underlying token decimals", function () {
   it("Case #3.1 - token decimals < 18", async () => {
+    const mockaToken = await mockERC20Factory.deploy("Aave Mock", "aMOCK", 6);
     const transferAmount = parseUnits("500", 18);
-    const decimals = await mock20.decimals();
+    const decimals = await mockaToken.decimals();
     assert.isBelow(Number(decimals), 18, "not < 18");
-    const balance = await mock20.balanceOf(user.address);
-    await mock20
+    await mockaToken.mint(user.address, transferAmount);
+    const balance = await mockaToken.balanceOf(user.address);
+
+    await mockaToken
       .connect(user)
       .approve(strollOutInstance.address, transferAmount);
+
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(mock20.address)
+      .returns(mockaToken.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(transferAmount);
+    await mock20.mint(strollOutInstance.address, transferAmount);
+    const superTokenBalanceBefore = await superMock20.balanceOf(user.address);
+
     const tx = await strollOutInstance
       .connect(mockManager)
       .topUp(user.address, superMock20.address, transferAmount);
@@ -293,30 +414,48 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
       transferAmount,
       "not right amount"
     );
-    const superTokenBalance = await daix.balanceOf(user.address); // DAIx or superMock20 ?
-    const finalBalance = await mock20.balanceOf(user.address);
+    const superTokenBalanceAfter = await superMock20.balanceOf(user.address);
+    const finalBalance = await mockaToken.balanceOf(user.address);
     assert.equal(
-      superTokenBalance.toString(),
-      transferAmount,
+      superTokenBalanceAfter.sub(superTokenBalanceBefore).toString(),
+      transferAmount.toString(),
       "(SuperToken) not right final balance"
     );
-    // Why this test ? This test is checking for increase in underlying amount whereas it should actually be decrease.
     assert.equal(
       balance.toString(),
       finalBalance.add(parseUnits("500", decimals)).toString(),
-      "(ERC20) - not right adjusted balance"
+      "(aToken) - not right adjusted balance"
     );
   });
   it("Case #3.2 - token decimals > 18", async () => {
     await mock20.setDecimals(25);
+    const mockaToken = await mockERC20Factory.deploy("Aave Mock", "aMOCK", 25);
     const transferAmount = parseUnits("500", 18);
-    const decimals = await mock20.decimals();
+    const decimals = await mockaToken.decimals();
     assert.isAbove(Number(decimals), 18, "not > 18");
-    const balance = await mock20.balanceOf(user.address);
-    await mock20.connect(user).approve(strollOutInstance.address, 0);
-    await mock20
+    await mockaToken.mint(user.address, parseUnits("500", 25));
+    const balance = await mockaToken.balanceOf(user.address);
+
+    await mockaToken.connect(user).approve(strollOutInstance.address, 0);
+    await mockaToken
       .connect(user)
       .approve(strollOutInstance.address, parseUnits("500", 25));
+
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(mock20.address)
+      .returns(mockaToken.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(parseUnits("500", 25));
+    await mock20.mint(strollOutInstance.address, parseUnits("500", 25));
+
+    // console.log("Transfer amount: ", transferAmount.toString());
+    const superTokenBalanceBefore = await superMock20.balanceOf(user.address);
+
     const tx = await strollOutInstance
       .connect(mockManager)
       .topUp(user.address, superMock20.address, transferAmount);
@@ -332,11 +471,19 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
       transferAmount,
       "not right amount"
     );
-    const superTokenBalance = await daix.balanceOf(user.address);
-    const finalBalance = await mock20.balanceOf(user.address);
+    const superTokenBalanceAfter = await superMock20.balanceOf(user.address);
+
+    // console.log(
+    //   "Supertoken balance: ",
+    //   superTokenBalanceAfter.sub(superTokenBalanceBefore).toString()
+    // );
+
+    // console.log("Transfer amount: ", transferAmount.toString());
+
+    const finalBalance = await mockaToken.balanceOf(user.address);
     assert.equal(
-      superTokenBalance.toString(),
-      transferAmount,
+      superTokenBalanceAfter.sub(superTokenBalanceBefore).toString(),
+      transferAmount.toString(),
       "(SuperToken) - not right final balance"
     );
     assert.equal(
@@ -348,13 +495,35 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
   it("Case #3.3 - token decimals = 18", async () => {
     await mock20.setDecimals(18);
     const decimals = await mock20.decimals();
+    const mockaToken = await mockERC20Factory.deploy(
+      "Aave Mock",
+      "aMOCK",
+      decimals
+    );
     const transferAmount = parseUnits("500", 18);
     assert.equal(decimals, 18, "not = 18");
-    const balance = await mock20.balanceOf(user.address);
-    await mock20.connect(user).approve(strollOutInstance.address, 0);
-    await mock20
+    await mockaToken.mint(user.address, transferAmount);
+    const balance = await mockaToken.balanceOf(user.address);
+
+    // await mock20.connect(user).approve(strollOutInstance.address, 0);
+    await mockaToken
       .connect(user)
       .approve(strollOutInstance.address, transferAmount);
+
+    await mockLendingPoolProvider.mock.getLendingPool.returns(
+      mockLendingPool.address
+    );
+    // Mocking the protocol data provider such that if DAI token address is given,
+    // it will return some random address indicating that DAI is a supported asset.
+    await mockProtocolData.mock.getReserveTokensAddresses
+      .withArgs(mock20.address)
+      .returns(mockaToken.address, zeroAddress, zeroAddress);
+
+    await mockLendingPool.mock.withdraw.returns(transferAmount);
+    await mock20.mint(strollOutInstance.address, transferAmount);
+
+    const superTokenBalanceBefore = await superMock20.balanceOf(user.address);
+
     const tx = await strollOutInstance
       .connect(mockManager)
       .topUp(user.address, superMock20.address, transferAmount);
@@ -370,17 +539,24 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
       transferAmount,
       "not right amount"
     );
-    const superTokenBalance = await daix.balanceOf(user.address);
-    const finalBalance = await mock20.balanceOf(user.address);
+    const superTokenBalanceAfter = await superMock20.balanceOf(user.address);
+    const finalBalance = await mockaToken.balanceOf(user.address);
+    // console.log(
+    //   "Supertoken balance: ",
+    //   superTokenBalanceAfter.sub(superTokenBalanceBefore).toString()
+    // );
+
+    // console.log("Transfer amount: ", transferAmount.toString());
+
     assert.equal(
-      superTokenBalance.toString(),
-      transferAmount,
+      superTokenBalanceAfter.sub(superTokenBalanceBefore).toString(),
+      transferAmount.toString(),
       "(SuperToken) - not right final balance"
     );
     assert.equal(
       balance.toString(),
       finalBalance.add(parseUnits("500", decimals)).toString(),
-      "(ERC20) - not right adjusted balance"
+      "(aToken) - not right adjusted balance"
     );
   });
 });
