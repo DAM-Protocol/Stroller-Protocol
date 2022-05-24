@@ -3,6 +3,7 @@
 /* eslint-disable no-undef */
 
 const { parseUnits } = require("@ethersproject/units");
+const { expect } = require("chai");
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../helpers/helpers");
@@ -160,11 +161,13 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
     );
   });
   it("Case #2.2 - Should not register empty strategy", async () => {
-    const rightError = await helper.expectedRevert(
-      strollManager.connect(owner).addApprovedStrategy(zeroAddress),
-      "empty strategy"
-    );
-    assert.ok(rightError);
+    // const rightError = await helper.expectedRevert(
+    //   strollManager.connect(owner).addApprovedStrategy(zeroAddress),
+    //   "empty strategy"
+    // );
+    // assert.ok(rightError);
+    await expect(strollManager.connect(owner).addApprovedStrategy(zeroAddress))
+      .to.be.reverted;
   });
   it("Case #2.2 - Should check if strategy is approved", async () => {
     // reset manager
@@ -174,7 +177,7 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
       MIN_UPPER
     );
     await strollManager.addApprovedStrategy(strategy.address);
-    const isOk = await strollManager.isApprovedStrategy(strategy.address);
+    const isOk = await strollManager.approvedStrategies(strategy.address);
     assert.ok(isOk);
   });
   it("Case #2.3 - Should remove register strategy", async () => {
@@ -196,15 +199,22 @@ describe("#2 - StrollManager: add, remove, check strategies", function () {
       MIN_LOWER,
       MIN_UPPER
     );
-    const notOwnerRevertAdding = await helper.expectedRevert(
-      strollManager.connect(user).addApprovedStrategy(strategy.address),
-      "caller is not the owner"
-    );
-    const notOwnerRevertRemoving = await helper.expectedRevert(
-      strollManager.connect(user).removeApprovedStrategy(strategy.address),
-      "caller is not the owner"
-    );
-    assert.ok(notOwnerRevertAdding && notOwnerRevertRemoving);
+    // const notOwnerRevertAdding = await helper.expectedRevert(
+    //   strollManager.connect(user).addApprovedStrategy(strategy.address),
+    //   "caller is not the owner"
+    // );
+    // const notOwnerRevertRemoving = await helper.expectedRevert(
+    //   strollManager.connect(user).removeApprovedStrategy(strategy.address),
+    //   "caller is not the owner"
+    // );
+    // assert.ok(notOwnerRevertAdding && notOwnerRevertRemoving);
+    await expect(
+      strollManager.connect(user).addApprovedStrategy(strategy.address)
+    ).to.be.reverted;
+
+    await expect(
+      strollManager.connect(user).removeApprovedStrategy(strategy.address)
+    ).to.be.reverted;
   });
 });
 
@@ -217,7 +227,107 @@ describe("#3 - StrollManager: Register TopUps", function () {
       MIN_UPPER
     );
     const expiry = helper.getTimeStampNow() + 3600 * 24 * 30;
-    const superTokenRevert = await helper.expectedRevert(
+    // const superTokenRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     zeroAddress,
+    //     strategy.address,
+    //     dai.address,
+    //     expiry,
+    //     MIN_LOWER,
+    //     MIN_UPPER
+    //   ),
+    //   "Null Address"
+    // );
+    // const strategyRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     daix.address,
+    //     zeroAddress,
+    //     dai.address,
+    //     expiry,
+    //     MIN_LOWER,
+    //     MIN_UPPER
+    //   ),
+    //   "Null Address"
+    // );
+    // const tokenRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     daix.address,
+    //     strategy.address,
+    //     zeroAddress,
+    //     expiry,
+    //     MIN_LOWER,
+    //     MIN_UPPER
+    //   ),
+    //   "Null Address"
+    // );
+    // const expiryRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     daix.address,
+    //     strategy.address,
+    //     dai.address,
+    //     helper.getTimeStampNow() - 10,
+    //     MIN_LOWER,
+    //     MIN_UPPER
+    //   ),
+    //   "Invalid time"
+    // );
+
+    // const lowerLimitRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     daix.address,
+    //     strategy.address,
+    //     dai.address,
+    //     expiry,
+    //     MIN_LOWER - 1,
+    //     MIN_UPPER
+    //   ),
+    //   "Increase lower limit"
+    // );
+
+    // const upperLimitRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     daix.address,
+    //     strategy.address,
+    //     dai.address,
+    //     expiry,
+    //     MIN_LOWER,
+    //     MIN_UPPER - 1
+    //   ),
+    //   "Increase upper limit"
+    // );
+
+    // const strategyNotRegisterRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     daix.address,
+    //     strategy.address,
+    //     dai.address,
+    //     expiry,
+    //     MIN_LOWER,
+    //     MIN_UPPER
+    //   ),
+    //   "strategy not allowed"
+    // );
+    // await strollManager.addApprovedStrategy(strategy.address);
+    // const supportedSTRevert = await helper.expectedRevert(
+    //   strollManager.createTopUp(
+    //     env.nativeToken.address,
+    //     strategy.address,
+    //     dai.address,
+    //     expiry,
+    //     MIN_LOWER,
+    //     MIN_UPPER
+    //   ),
+    //   "super token not supported"
+    // );
+
+    // assert.ok(superTokenRevert && strategyRevert && tokenRevert);
+    // assert.ok(expiryRevert);
+    // assert.ok(lowerLimitRevert);
+    // assert.ok(upperLimitRevert);
+    // assert.ok(strategyNotRegisterRevert);
+    // assert.ok(supportedSTRevert);
+
+    await expect(
       strollManager.createTopUp(
         zeroAddress,
         strategy.address,
@@ -225,10 +335,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER,
         MIN_UPPER
-      ),
-      "Null Address"
-    );
-    const strategyRevert = await helper.expectedRevert(
+      )
+    ).to.be.reverted;
+
+    await expect(
       strollManager.createTopUp(
         daix.address,
         zeroAddress,
@@ -236,10 +346,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER,
         MIN_UPPER
-      ),
-      "Null Address"
-    );
-    const tokenRevert = await helper.expectedRevert(
+      )
+    ).to.be.reverted;
+
+    await expect(
       strollManager.createTopUp(
         daix.address,
         strategy.address,
@@ -247,10 +357,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER,
         MIN_UPPER
-      ),
-      "Null Address"
-    );
-    const expiryRevert = await helper.expectedRevert(
+      )
+    ).to.be.reverted;
+
+    await expect(
       strollManager.createTopUp(
         daix.address,
         strategy.address,
@@ -258,11 +368,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         helper.getTimeStampNow() - 10,
         MIN_LOWER,
         MIN_UPPER
-      ),
-      "Invalid time"
-    );
+      )
+    ).to.be.reverted;
 
-    const lowerLimitRevert = await helper.expectedRevert(
+    await expect(
       strollManager.createTopUp(
         daix.address,
         strategy.address,
@@ -270,11 +379,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER - 1,
         MIN_UPPER
-      ),
-      "Increase lower limit"
-    );
+      )
+    ).to.be.reverted;
 
-    const upperLimitRevert = await helper.expectedRevert(
+    await expect(
       strollManager.createTopUp(
         daix.address,
         strategy.address,
@@ -282,11 +390,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER,
         MIN_UPPER - 1
-      ),
-      "Increase upper limit"
-    );
+      )
+    ).to.be.reverted;
 
-    const strategyNotRegisterRevert = await helper.expectedRevert(
+    await expect(
       strollManager.createTopUp(
         daix.address,
         strategy.address,
@@ -294,11 +401,10 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER,
         MIN_UPPER
-      ),
-      "strategy not allowed"
-    );
-    await strollManager.addApprovedStrategy(strategy.address);
-    const supportedSTRevert = await helper.expectedRevert(
+      )
+    ).to.be.reverted;
+
+    await expect(
       strollManager.createTopUp(
         env.nativeToken.address,
         strategy.address,
@@ -306,16 +412,8 @@ describe("#3 - StrollManager: Register TopUps", function () {
         expiry,
         MIN_LOWER,
         MIN_UPPER
-      ),
-      "super token not supported"
-    );
-
-    assert.ok(superTokenRevert && strategyRevert && tokenRevert);
-    assert.ok(expiryRevert);
-    assert.ok(lowerLimitRevert);
-    assert.ok(upperLimitRevert);
-    assert.ok(strategyNotRegisterRevert);
-    assert.ok(supportedSTRevert);
+      )
+    ).to.be.reverted;
   });
   it("Case #3.2 - Should register correct topUp", async () => {
     const expiry = helper.getTimeStampNow() + 3600 * 24 * 30;
@@ -509,13 +607,18 @@ describe("#4 - StrollManager: Delete TopUps", function () {
         MIN_UPPER
       );
 
-    const rightError = await helper.expectedRevert(
+    // const rightError = await helper.expectedRevert(
+    //   strollManager
+    //     .connect(owner)
+    //     .deleteTopUp(user.address, daix.address, dai.address),
+    //   "Can't delete TopUp"
+    // );
+    // assert.ok(rightError);
+    await expect(
       strollManager
         .connect(owner)
-        .deleteTopUp(user.address, daix.address, dai.address),
-      "Can't delete TopUp"
-    );
-    assert.ok(rightError);
+        .deleteTopUp(user.address, daix.address, dai.address)
+    ).to.be.reverted;
   });
   it("Case #4.5 - Should not remove topUp - wrong expiry", async () => {
     const expiry = helper.getTimeStampNow() + 3600;
@@ -530,13 +633,18 @@ describe("#4 - StrollManager: Delete TopUps", function () {
         MIN_UPPER
       );
 
-    const rightError = await helper.expectedRevert(
+    // const rightError = await helper.expectedRevert(
+    //   strollManager
+    //     .connect(owner)
+    //     .deleteTopUp(user.address, daix.address, dai.address),
+    //   "Can't delete TopUp"
+    // );
+    // assert.ok(rightError);
+    await expect(
       strollManager
         .connect(owner)
-        .deleteTopUp(user.address, daix.address, dai.address),
-      "Can't delete TopUp"
-    );
-    assert.ok(rightError);
+        .deleteTopUp(user.address, daix.address, dai.address)
+    ).to.be.reverted;
   });
 });
 
@@ -800,9 +908,12 @@ describe("#6 - perform Top Up", function () {
     assert.isAbove(after, balance, "balance should go up");
   });
   it("Case #6.3 - should revert if no topAmount", async () => {
-    await helper.expectedRevert(
-      strollManager.performTopUp(user.address, daix.address, dai.address),
-      "TopUp check failed"
-    );
+    // await helper.expectedRevert(
+    //   strollManager.performTopUp(user.address, daix.address, dai.address),
+    //   "TopUp check failed"
+    // );
+    await expect(
+      strollManager.performTopUp(user.address, daix.address, dai.address)
+    ).to.be.reverted;
   });
 });

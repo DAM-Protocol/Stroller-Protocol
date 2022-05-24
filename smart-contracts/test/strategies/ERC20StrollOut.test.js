@@ -3,6 +3,7 @@
 /* eslint-disable no-undef */
 
 const { parseUnits } = require("@ethersproject/units");
+const { expect } = require("chai");
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../../helpers/helpers");
 const devEnv = require("./../utils/setEnv");
@@ -85,11 +86,7 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
     );
     assert.equal(strollOwner, owner.address, "Owner is not correct");
 
-    const rightError = await helper.expectedRevert(
-      strollerFactory.deploy(zeroAddress),
-      "zero address"
-    );
-    assert.ok(rightError);
+    await expect(strollerFactory.deploy(zeroAddress)).to.be.reverted;
   });
   it("Case #0.2 - Should change Stroll manager", async () => {
     const tx = await strollOutInstance.changeStrollManager(accounts[9].address);
@@ -110,11 +107,8 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
     );
   });
   it("Case #0.3 - Should revert if Stroll manager is zero", async () => {
-    const rightError = await helper.expectedRevert(
-      strollOutInstance.changeStrollManager(zeroAddress),
-      "zero address"
-    );
-    assert.ok(rightError);
+    await expect(strollOutInstance.changeStrollManager(zeroAddress)).to.be
+      .reverted;
   });
   it("Case #0.4 - Should revert if not owner", async () => {
     const rightError = await helper.expectedRevert(
@@ -149,22 +143,18 @@ describe("#1 - ERC20StrollOut: SuperToken support ", function () {
 describe("#2 - ERC20StrollOut: TopUp", function () {
   it("Case #2.1 - Should not topUp from non manager", async () => {
     strollOutInstance = await strollerFactory.deploy(mockManager.address);
-    const rightError = await helper.expectedRevert(
+    await expect(
       strollOutInstance
         .connect(nonManager)
-        .topUp(accounts[1].address, daix.address, 1),
-      "Caller not authorised"
-    );
-    assert.ok(rightError);
+        .topUp(accounts[1].address, daix.address, 1)
+    ).to.be.reverted;
   });
   it("Case #2.2 - Should not topUp with non wrapped superToken", async () => {
-    const rightError = await helper.expectedRevert(
+    await expect(
       strollOutInstance
         .connect(mockManager)
-        .topUp(accounts[1].address, env.nativeToken.address, 1),
-      "SuperToken not supported"
-    );
-    assert.ok(rightError);
+        .topUp(accounts[1].address, env.nativeToken.address, 1)
+    ).to.be.reverted;
   });
   it("Case #2.3 - Should perform topUp()", async () => {
     const transferAmount = parseUnits("500", 18);
