@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity =0.8.13;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "@openzeppelin/contracts/access/Ownable.sol";
-// import "../interfaces/IStrategy.sol";
 import "./StrategyBase.sol";
 import "../interfaces/IERC20Mod.sol";
 
-/// @dev NOTE: re-factoring is required to make this contract adhere to the solidity style guide.
-
+/// @title ERC20 auto top-up contract.
+/// @author rashtrakoff (rashtrakoff@pm.me).
 contract ERC20StrollOut is StrategyBase {
     using SafeERC20 for IERC20Mod;
 

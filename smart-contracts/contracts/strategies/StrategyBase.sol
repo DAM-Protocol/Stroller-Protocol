@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity =0.8.13;
+pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IERC20Mod.sol";
 import "../interfaces/IStrategy.sol";
 
+/// @title Base abstract contract for all strategies.
+/// @author rashtrakoff (rashtrakoff@pm.me).
 abstract contract StrategyBase is IStrategy, Ownable {
     address public override strollManager;
-
     function changeStrollManager(address _newStrollManager)
         external
         override

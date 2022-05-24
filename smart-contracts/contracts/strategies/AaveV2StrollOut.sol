@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity =0.8.13;
+pragma solidity 0.8.13;
 
-import { ILendingPoolAddressesProvider, ILendingPool, IAToken, IProtocolDataProvider } from "../interfaces/IAaveV2.sol";
+import { ILendingPoolAddressesProvider, ILendingPool, IProtocolDataProvider } from "../interfaces/IAaveV2.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "../interfaces/IERC20Mod.sol";
 import "./StrategyBase.sol";
-import "hardhat/console.sol";
 
+/// @title AaveV2 strategy for Stroller Protocol.
+/// @author rashtrakoff (rashtrakoff@pm.me).
 contract AaveV2StrollOut is StrategyBase {
     using SafeERC20 for IERC20Mod;
 

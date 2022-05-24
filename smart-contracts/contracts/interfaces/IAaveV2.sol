@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.4;
+pragma solidity 0.8.13;
 
 interface ILendingPool {
     /**
@@ -77,21 +77,4 @@ interface ILendingPoolAddressesProvider {
     function getLendingPool() external view returns (address);
 
     function getPriceOracle() external view returns (address);
-}
-
-interface IAToken {
-    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
-}
-
-interface IPriceOracleGetter {
-    function getAssetPrice(address _asset) external view returns (uint256);
-
-    function getAssetsPrices(address[] calldata _assets)
-        external
-        view
-        returns (uint256[] memory);
-
-    function getSourceOfAsset(address _asset) external view returns (address);
-
-    function getFallbackOracle() external view returns (address);
 }

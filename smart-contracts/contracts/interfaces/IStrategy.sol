@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity =0.8.13;
+pragma solidity 0.8.13;
 
 import { ISuperToken } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 
