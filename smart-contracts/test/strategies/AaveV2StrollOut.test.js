@@ -116,7 +116,7 @@ describe("#0 - AaveV2StrollOut: Deployment and configurations", function () {
         mockLendingPoolProvider.address,
         mockProtocolData.address
       )
-    ).to.be.reverted;
+    ).to.be.revertedWith("ZeroAddress");
 
     await expect(
       strollerFactory.deploy(
@@ -124,7 +124,7 @@ describe("#0 - AaveV2StrollOut: Deployment and configurations", function () {
         zeroAddress,
         mockProtocolData.address
       )
-    ).to.be.reverted;
+    ).to.be.revertedWith("ZeroAddress");
 
     await expect(
       strollerFactory.deploy(
@@ -132,7 +132,7 @@ describe("#0 - AaveV2StrollOut: Deployment and configurations", function () {
         mockLendingPoolProvider.address,
         zeroAddress
       )
-    ).to.be.reverted;
+    ).to.be.revertedWith("ZeroAddress");
   });
   it("Case #0.2 - Should change Stroll manager", async () => {
     const tx = await strollOutInstance.changeStrollManager(accounts[9].address);
@@ -154,8 +154,9 @@ describe("#0 - AaveV2StrollOut: Deployment and configurations", function () {
     );
   });
   it("Case #0.3 - Should revert if Stroll manager is zero", async () => {
-    await expect(strollOutInstance.changeStrollManager(zeroAddress)).to.be
-      .reverted;
+    await expect(
+      strollOutInstance.changeStrollManager(zeroAddress)
+    ).to.be.revertedWith("ZeroAddress");
   });
   it("Case #0.4 - Should revert if not owner", async () => {
     const rightError = await helper.expectedRevert(
@@ -204,16 +205,12 @@ describe("#2 - AaveV2StrollOut: TopUp", function () {
       strollOutInstance
         .connect(nonManager)
         .topUp(accounts[1].address, daix.address, 1)
-    ).to.be.reverted;
+    ).to.be.revertedWith(
+      `UnauthorizedCaller("${nonManager.address}", "${mockManager.address}")`
+    );
   });
-  it("Case #2.2 - Should not topUp with non wrapped superToken", async () => {
-    await expect(
-      strollOutInstance
-        .connect(mockManager)
-        .topUp(accounts[1].address, env.nativeToken.address, 1)
-    ).to.be.reverted;
-  });
-  it("Case #2.3 - Should perform topUp()", async () => {
+
+  it("Case #2.2 - Should perform topUp()", async () => {
     const transferAmount = parseUnits("500", 18);
     await aDAI.connect(user).approve(strollOutInstance.address, transferAmount);
 
@@ -248,7 +245,7 @@ describe("#2 - AaveV2StrollOut: TopUp", function () {
       "not right final balance"
     );
   });
-  it("Case #2.3.1 - Should not topUp() if allowance not enough", async () => {
+  it("Case #2.2.1 - Should not topUp() if allowance not enough", async () => {
     const transferAmount = parseUnits("50", 18);
     await aDAI.connect(user).approve(strollOutInstance.address, 0);
     await mockLendingPoolProvider.mock.getLendingPool.returns(
@@ -280,7 +277,7 @@ describe("#2 - AaveV2StrollOut: TopUp", function () {
 
     assert.ok(rigthError);
   });
-  it("Case #2.3.2 - Should not topUp() if balance not enough", async () => {
+  it("Case #2.2.2 - Should not topUp() if balance not enough", async () => {
     const transferAmount = parseUnits("1000", 18);
     await aDAI.connect(user).approve(strollOutInstance.address, 0);
     await mockLendingPoolProvider.mock.getLendingPool.returns(
@@ -311,7 +308,7 @@ describe("#2 - AaveV2StrollOut: TopUp", function () {
     );
     assert.ok(rigthError);
   });
-  it("Case #2.4 - Should perform topUp() - smart wallet", async () => {
+  it("Case #2.3 - Should perform topUp() - smart wallet", async () => {
     const transferAmount = parseUnits("100", 18);
     await aDAI.mint(mockReceiverContractInstance.address, transferAmount);
     await mockReceiverContractInstance.approve(
@@ -460,13 +457,6 @@ describe("#3 - AaveV2StrollOut: underlying token decimals", function () {
       "not right amount"
     );
     const superTokenBalanceAfter = await superMock20.balanceOf(user.address);
-
-    // console.log(
-    //   "Supertoken balance: ",
-    //   superTokenBalanceAfter.sub(superTokenBalanceBefore).toString()
-    // );
-
-    // console.log("Transfer amount: ", transferAmount.toString());
 
     const finalBalance = await mockaToken.balanceOf(user.address);
     assert.equal(

@@ -30,6 +30,7 @@ contract AaveV2StrollOut is StrategyBase {
         PROTOCOL_DATA_PROVIDER = _protocolDataProvider;
     }
 
+    /// @dev IStrategy.topUp implementation.
     function topUp(
         address _user,
         ISuperToken _superToken,
@@ -88,6 +89,7 @@ contract AaveV2StrollOut is StrategyBase {
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 
+    /// @dev IStrategy.isSupportedSuperToken implementation.
     function isSupportedSuperToken(ISuperToken _superToken)
         public
         view

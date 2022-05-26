@@ -16,6 +16,7 @@ contract ERC20StrollOut is StrategyBase {
         strollManager = _strollManager;
     }
 
+    /// @dev IStrategy.topUp implementation.
     function topUp(
         address _user,
         ISuperToken _superToken,
@@ -64,6 +65,7 @@ contract ERC20StrollOut is StrategyBase {
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 
+    /// @dev IStrategy.isSupportedSuperToken implementation.
     function isSupportedSuperToken(ISuperToken _superToken)
         public
         view

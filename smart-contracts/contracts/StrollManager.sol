@@ -8,14 +8,19 @@ import "./interfaces/IStrollManager.sol";
 
 // solhint-disable not-rely-on-time
 contract StrollManager is IStrollManager, Ownable {
+    IConstantFlowAgreementV1 public immutable CFA_V1;
+    
+    /// @dev IStrollManager.minLower implementation.
     uint64 public override minLower;
+
+    /// @dev IStrollManager.minUpper implementation.
     uint64 public override minUpper;
 
-    mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
+    /// @dev IStrollManager.approvedStrategies implementation.
     mapping(address => bool) public override approvedStrategies;
 
-    IConstantFlowAgreementV1 public immutable CFA_V1;
-
+    mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
+    
     constructor(
         address _icfa,
         uint64 _minLower,
@@ -26,6 +31,7 @@ contract StrollManager is IStrollManager, Ownable {
         minUpper = _minUpper;
     }
 
+    /// @dev IStrollManager.createTopUp implementation.
     function createTopUp(
         address _superToken,
         address _strategy,
@@ -49,8 +55,8 @@ contract StrollManager is IStrollManager, Ownable {
         if (_upperLimit < minUpper)
             revert InsufficientLimits(_upperLimit, minUpper);
 
-        if (!approvedStrategies[_strategy]) revert InvalidStrategy(_strategy);
 
+        if (!approvedStrategies[_strategy]) revert InvalidStrategy(_strategy);
         if (
             !IStrategy(_strategy).isSupportedSuperToken(
                 ISuperToken(_superToken)
@@ -83,6 +89,7 @@ contract StrollManager is IStrollManager, Ownable {
         );
     }
 
+    /// @dev IStrollManager.performTopUp implementation.
     function performTopUp(
         address _user,
         address _superToken,
@@ -91,6 +98,7 @@ contract StrollManager is IStrollManager, Ownable {
         performTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
     }
 
+    /// @dev IStrollManager.deleteTopUp implementation.
     function deleteTopUp(
         address _user,
         address _superToken,
@@ -99,6 +107,7 @@ contract StrollManager is IStrollManager, Ownable {
         deleteTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
     }
 
+    /// @dev IStrollManager.deleteBatch implementation.
     function deleteBatch(bytes32[] calldata _indices) external override {
         // delete multiple top ups
         for (uint256 i = 0; i < _indices.length; i++) {
@@ -106,6 +115,7 @@ contract StrollManager is IStrollManager, Ownable {
         }
     }
 
+    /// @dev IStrollManager.addApprovedStrategy implementation.
     function addApprovedStrategy(address _strategy)
         external
         override
@@ -117,6 +127,7 @@ contract StrollManager is IStrollManager, Ownable {
         emit AddedApprovedStrategy(_strategy);
     }
 
+    /// @dev IStrollManager.removeApprovedStrategy implementation.
     function removeApprovedStrategy(address _strategy) external onlyOwner {
         if (approvedStrategies[_strategy]) {
             delete approvedStrategies[_strategy];
@@ -124,6 +135,7 @@ contract StrollManager is IStrollManager, Ownable {
         }
     }
 
+    /// @dev IStrollManager.getTopUp implementation.
     function getTopUp(
         address _user,
         address _superToken,
@@ -133,6 +145,7 @@ contract StrollManager is IStrollManager, Ownable {
             getTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
     }
 
+    /// @dev IStrollManager.checkTopUp implementation.
     function checkTopUp(
         address _user,
         address _superToken,
@@ -144,6 +157,7 @@ contract StrollManager is IStrollManager, Ownable {
             );
     }
 
+    /// @dev IStrollManager.performTopUpByIndex implementation.
     function performTopUpByIndex(bytes32 _index) public {
         uint256 topUpAmount = checkTopUpByIndex(_index);
 
@@ -158,6 +172,7 @@ contract StrollManager is IStrollManager, Ownable {
         emit PerformedTopUp(_index, topUpAmount);
     }
 
+    /// @dev IStrollManager.deleteTopUpByIndex implementation.
     function deleteTopUpByIndex(bytes32 _index) public {
         TopUp memory topUp = topUps[_index];
 
@@ -175,6 +190,7 @@ contract StrollManager is IStrollManager, Ownable {
         );
     }
 
+    /// @dev IStrollManager.getTopUpByIndex implementation.
     function getTopUpByIndex(bytes32 _index)
         public
         view
@@ -183,6 +199,7 @@ contract StrollManager is IStrollManager, Ownable {
         return topUps[_index];
     }
 
+    /// @dev IStrollManager.checkTopUpByIndex implementation.
     function checkTopUpByIndex(bytes32 _index)
         public
         view
@@ -216,6 +233,7 @@ contract StrollManager is IStrollManager, Ownable {
         return 0;
     }
 
+    /// @dev IStrollManager.getTopUpIndex implementation.
     function getTopUpIndex(
         address _user,
         address _superToken,

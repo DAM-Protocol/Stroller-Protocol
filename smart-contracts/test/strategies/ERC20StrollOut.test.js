@@ -86,7 +86,9 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
     );
     assert.equal(strollOwner, owner.address, "Owner is not correct");
 
-    await expect(strollerFactory.deploy(zeroAddress)).to.be.reverted;
+    await expect(strollerFactory.deploy(zeroAddress)).to.be.revertedWith(
+      "ZeroAddress"
+    );
   });
   it("Case #0.2 - Should change Stroll manager", async () => {
     const tx = await strollOutInstance.changeStrollManager(accounts[9].address);
@@ -107,8 +109,9 @@ describe("#0 - ERC20StrollOut: Deployment and configurations", function () {
     );
   });
   it("Case #0.3 - Should revert if Stroll manager is zero", async () => {
-    await expect(strollOutInstance.changeStrollManager(zeroAddress)).to.be
-      .reverted;
+    await expect(
+      strollOutInstance.changeStrollManager(zeroAddress)
+    ).to.be.revertedWith("ZeroAddress");
   });
   it("Case #0.4 - Should revert if not owner", async () => {
     const rightError = await helper.expectedRevert(
@@ -143,20 +146,17 @@ describe("#1 - ERC20StrollOut: SuperToken support ", function () {
 describe("#2 - ERC20StrollOut: TopUp", function () {
   it("Case #2.1 - Should not topUp from non manager", async () => {
     strollOutInstance = await strollerFactory.deploy(mockManager.address);
+
     await expect(
       strollOutInstance
         .connect(nonManager)
         .topUp(accounts[1].address, daix.address, 1)
-    ).to.be.reverted;
+    ).to.be.revertedWith(
+      `UnauthorizedCaller("${nonManager.address}", "${mockManager.address}")`
+    );
   });
-  it("Case #2.2 - Should not topUp with non wrapped superToken", async () => {
-    await expect(
-      strollOutInstance
-        .connect(mockManager)
-        .topUp(accounts[1].address, env.nativeToken.address, 1)
-    ).to.be.reverted;
-  });
-  it("Case #2.3 - Should perform topUp()", async () => {
+
+  it("Case #2.2 - Should perform topUp()", async () => {
     const transferAmount = parseUnits("500", 18);
     await dai.connect(user).approve(strollOutInstance.address, transferAmount);
     const tx = await strollOutInstance
@@ -178,7 +178,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
       "not right final balance"
     );
   });
-  it("Case #2.3.1 - Should not topUp() if allowance not enough", async () => {
+  it("Case #2.2.1 - Should not topUp() if allowance not enough", async () => {
     const transferAmount = parseUnits("50", 18);
     await dai.connect(user).approve(strollOutInstance.address, 0);
     const removedApproval = await dai.allowance(
@@ -200,7 +200,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
 
     assert.ok(rigthError);
   });
-  it("Case #2.3.2 - Should not topUp() if balance not enough", async () => {
+  it("Case #2.2.2 - Should not topUp() if balance not enough", async () => {
     const transferAmount = parseUnits("1000", 18);
     await dai.connect(user).approve(strollOutInstance.address, 0);
     const removedApproval = await dai.allowance(
@@ -221,7 +221,7 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
     );
     assert.ok(rigthError);
   });
-  it("Case #2.4 - Should perform topUp() - smart wallet", async () => {
+  it("Case #2.3 - Should perform topUp() - smart wallet", async () => {
     const transferAmount = parseUnits("100", 18);
     await dai.mint(mockReceiverContractInstance.address, parseUnits("100", 18));
     await mockReceiverContractInstance.approve(
@@ -290,7 +290,7 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
       transferAmount,
       "(SuperToken) not right final balance"
     );
-    // Why this test ? This test is checking for increase in underlying amount whereas it should actually be decrease.
+
     assert.equal(
       balance.toString(),
       finalBalance.add(parseUnits("500", decimals)).toString(),

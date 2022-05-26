@@ -8,7 +8,10 @@ import "../interfaces/IStrategy.sol";
 /// @title Base abstract contract for all strategies.
 /// @author rashtrakoff (rashtrakoff@pm.me).
 abstract contract StrategyBase is IStrategy, Ownable {
+    /// @dev IStrategy.strollManager implementation.
     address public override strollManager;
+
+    /// @dev IStrategy.changeStrollManager implementation.
     function changeStrollManager(address _newStrollManager)
         external
         override
@@ -21,6 +24,7 @@ abstract contract StrategyBase is IStrategy, Ownable {
         strollManager = _newStrollManager;
     }
 
+    /// @dev IStrategy.emergencyWithdraw implementation.
     function emergencyWithdraw(address _token) external override onlyOwner {
         uint256 tokenBalance = IERC20Mod(_token).balanceOf(address(this));
 
