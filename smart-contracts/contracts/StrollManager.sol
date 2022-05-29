@@ -7,6 +7,10 @@ import "./interfaces/IERC20Mod.sol";
 import "./interfaces/IStrollManager.sol";
 
 // solhint-disable not-rely-on-time
+/** * @title Top up manager for stroller protocol
+    * @author Harsh Prakash <prakashharsh32@gmail.com>
+    * @notice This contract is used to manage Stroller Protocol's top ups.
+ */
 contract StrollManager is IStrollManager, Ownable {
     IConstantFlowAgreementV1 public immutable CFA_V1;
     
@@ -21,6 +25,11 @@ contract StrollManager is IStrollManager, Ownable {
 
     mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
     
+    /** @notice Constructor.
+        * @param _icfa Superfluid ConstantFlowAgreementV1 contract address.
+        * @param _minLower Minimum lower bound for top up.
+        * @param _minUpper Minimum upper bound for top up.
+    */
     constructor(
         address _icfa,
         uint64 _minLower,
@@ -31,7 +40,41 @@ contract StrollManager is IStrollManager, Ownable {
         minUpper = _minUpper;
     }
 
-    /// @dev IStrollManager.createTopUp implementation.
+    /**  @dev IStrollManager.addApprovedStrategy implementation.
+        * @notice Adds a strategy to the list of approved strategies.
+        * @param _strategy The address of strategy contract to add.
+    */
+    function addApprovedStrategy(address _strategy)
+        external
+        override
+        onlyOwner
+    {
+        if (_strategy == address(0)) revert InvalidStrategy(_strategy);
+
+        approvedStrategies[_strategy] = true;
+        emit AddedApprovedStrategy(_strategy);
+    }
+
+    /** @dev IStrollManager.removeApprovedStrategy implementation.
+        * @notice Removes a strategy from the list of approved strategies.
+        * @param _strategy The address of strategy contract to remove.
+    */
+    function removeApprovedStrategy(address _strategy) external onlyOwner {
+        if (approvedStrategies[_strategy]) {
+            delete approvedStrategies[_strategy];
+            emit RemovedApprovedStrategy(_strategy);
+        }
+    }
+
+    /** *  @dev IStrollManager.createTopUp implementation.
+        *  @notice Creates a new top up task.
+        *  @param _superToken The supertoken to monitor/top up.
+        *  @param _strategy The strategy to use for top up.
+        *  @param _liquidityToken The token used to convert to _superToken.
+        *  @param _expiry Timestamp after which the top up is considered invalid.
+        *  @param _lowerLimit Triggers top up if stream can't be continued for this amount of seconds.
+        *  @param _upperLimit Increase supertoken balance to continue stream for this amount of seconds.
+    */
     function createTopUp(
         address _superToken,
         address _strategy,
@@ -89,53 +132,41 @@ contract StrollManager is IStrollManager, Ownable {
         );
     }
 
-    /// @dev IStrollManager.performTopUp implementation.
-    function performTopUp(
+    /** @dev IStrollManager.getTopUpIndex implementation.
+        * @notice Gets the index of a top up.
+        * @param _user The creator of top up.
+        * @param _superToken The supertoken which is being monitored/top up.
+        * @param _liquidityToken The token used to convert to _superToken.
+        * @return The index of the top up.
+    */
+    function getTopUpIndex(
         address _user,
         address _superToken,
         address _liquidityToken
-    ) external override {
-        performTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encode(_user, _superToken, _liquidityToken));
     }
 
-    /// @dev IStrollManager.deleteTopUp implementation.
-    function deleteTopUp(
-        address _user,
-        address _superToken,
-        address _liquidityToken
-    ) external override {
-        deleteTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
-    }
-
-    /// @dev IStrollManager.deleteBatch implementation.
-    function deleteBatch(bytes32[] calldata _indices) external override {
-        // delete multiple top ups
-        for (uint256 i = 0; i < _indices.length; i++) {
-            deleteTopUpByIndex(_indices[i]);
-        }
-    }
-
-    /// @dev IStrollManager.addApprovedStrategy implementation.
-    function addApprovedStrategy(address _strategy)
-        external
-        override
-        onlyOwner
+    /** @dev IStrollManager.getTopUpByIndex implementation.
+        * @notice Gets a top up by index.
+        * @param _index Index of top up.
+        * @return The top up.
+    */
+    function getTopUpByIndex(bytes32 _index)
+        public
+        view
+        returns (TopUp memory)
     {
-        if (_strategy == address(0)) revert InvalidStrategy(_strategy);
-
-        approvedStrategies[_strategy] = true;
-        emit AddedApprovedStrategy(_strategy);
+        return topUps[_index];
     }
 
-    /// @dev IStrollManager.removeApprovedStrategy implementation.
-    function removeApprovedStrategy(address _strategy) external onlyOwner {
-        if (approvedStrategies[_strategy]) {
-            delete approvedStrategies[_strategy];
-            emit RemovedApprovedStrategy(_strategy);
-        }
-    }
-
-    /// @dev IStrollManager.getTopUp implementation.
+    /** @dev IStrollManager.getTopUp implementation.
+        * @notice Gets a top up by index.
+        * @param _user The creator of top up.
+        * @param _superToken The supertoken which is being monitored/top up.
+        * @param _liquidityToken The token used to convert to _superToken.
+        * @return The top up.
+    */
     function getTopUp(
         address _user,
         address _superToken,
@@ -145,61 +176,11 @@ contract StrollManager is IStrollManager, Ownable {
             getTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
     }
 
-    /// @dev IStrollManager.checkTopUp implementation.
-    function checkTopUp(
-        address _user,
-        address _superToken,
-        address _liquidityToken
-    ) external view override returns (uint256) {
-        return
-            checkTopUpByIndex(
-                getTopUpIndex(_user, _superToken, _liquidityToken)
-            );
-    }
-
-    /// @dev IStrollManager.performTopUpByIndex implementation.
-    function performTopUpByIndex(bytes32 _index) public {
-        uint256 topUpAmount = checkTopUpByIndex(_index);
-
-        if (topUpAmount == 0) revert TopUpNotRequired(_index);
-
-        TopUp memory topUp = topUps[_index];
-        topUp.strategy.topUp(
-            topUp.user,
-            ISuperToken(topUp.superToken),
-            topUpAmount
-        );
-        emit PerformedTopUp(_index, topUpAmount);
-    }
-
-    /// @dev IStrollManager.deleteTopUpByIndex implementation.
-    function deleteTopUpByIndex(bytes32 _index) public {
-        TopUp memory topUp = topUps[_index];
-
-        if (topUp.user != msg.sender && topUp.expiry >= block.timestamp)
-            revert UnauthorizedCaller(msg.sender, topUp.user);
-
-        delete topUps[_index];
-
-        emit TopUpDeleted(
-            _index,
-            topUp.user,
-            address(topUp.superToken),
-            address(topUp.strategy),
-            topUp.liquidityToken
-        );
-    }
-
-    /// @dev IStrollManager.getTopUpByIndex implementation.
-    function getTopUpByIndex(bytes32 _index)
-        public
-        view
-        returns (TopUp memory)
-    {
-        return topUps[_index];
-    }
-
-    /// @dev IStrollManager.checkTopUpByIndex implementation.
+    /** @dev IStrollManager.checkTopUpByIndex implementation.
+        * @notice Checks if a top up is required by index.
+        * @param _index Index of top up.
+        * @return _amount The amount of supertoken to top up.
+    */
     function checkTopUpByIndex(bytes32 _index)
         public
         view
@@ -233,12 +214,98 @@ contract StrollManager is IStrollManager, Ownable {
         return 0;
     }
 
-    /// @dev IStrollManager.getTopUpIndex implementation.
-    function getTopUpIndex(
+    /** @dev IStrollManager.checkTopUp implementation.
+        * @notice Checks if a top up is required.
+        * @param _user The creator of top up.
+        * @param _superToken The supertoken which is being monitored/top up.
+        * @param _liquidityToken The token used to convert to _superToken.
+        * @return _amount The amount of supertoken to top up.
+    */
+    function checkTopUp(
         address _user,
         address _superToken,
         address _liquidityToken
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encode(_user, _superToken, _liquidityToken));
+    ) external view override returns (uint256) {
+        return
+            checkTopUpByIndex(
+                getTopUpIndex(_user, _superToken, _liquidityToken)
+            );
+    }
+
+    /** @dev IStrollManager.performTopUpByIndex implementation.
+        * @notice Performs a top up by index.
+        * @param _index Index of top up.
+    */
+    function performTopUpByIndex(bytes32 _index) public {
+        uint256 topUpAmount = checkTopUpByIndex(_index);
+
+        if (topUpAmount == 0) revert TopUpNotRequired(_index);
+
+        TopUp memory topUp = topUps[_index];
+        topUp.strategy.topUp(
+            topUp.user,
+            ISuperToken(topUp.superToken),
+            topUpAmount
+        );
+        emit PerformedTopUp(_index, topUpAmount);
+    }
+
+    /** @dev IStrollManager.performTopUp implementation.
+        * @notice Performs a top up.
+        * @param _user The user to top up.
+        * @param _superToken The supertoken to monitor/top up.
+        * @param _liquidityToken The token used to convert to _superToken.
+    */
+    function performTopUp(
+        address _user,
+        address _superToken,
+        address _liquidityToken
+    ) external override {
+        performTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
+    }
+
+    /** @dev IStrollManager.deleteTopUpByIndex implementation.
+        * @notice Deletes a top up by index.
+        * @param _index Index of top up.
+    */
+    function deleteTopUpByIndex(bytes32 _index) public {
+        TopUp memory topUp = topUps[_index];
+
+        if (topUp.user != msg.sender && topUp.expiry >= block.timestamp)
+            revert UnauthorizedCaller(msg.sender, topUp.user);
+
+        delete topUps[_index];
+
+        emit TopUpDeleted(
+            _index,
+            topUp.user,
+            address(topUp.superToken),
+            address(topUp.strategy),
+            topUp.liquidityToken
+        );
+    }
+
+    /** @dev IStrollManager.deleteTopUp implementation.
+        * @notice Deletes a top up.
+        * @param _user The creator of top up.
+        * @param _superToken The supertoken which is being monitored/top up.
+        * @param _liquidityToken The token used to convert to _superToken.
+    */
+    function deleteTopUp(
+        address _user,
+        address _superToken,
+        address _liquidityToken
+    ) external override {
+        deleteTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
+    }
+
+    /**  @dev IStrollManager.deleteBatch implementation.
+        * @notice Deletes a batch of top ups.
+        * @param _indices Array of indices of top ups to delete.
+    */
+    function deleteBatch(bytes32[] calldata _indices) external override {
+        for (uint256 i = 0; i < _indices.length; i++) {
+            deleteTopUpByIndex(_indices[i]);
+        }
     }
 }
