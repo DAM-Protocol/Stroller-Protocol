@@ -7,6 +7,9 @@ import "./interfaces/IERC20Mod.sol";
 import "./interfaces/IStrollManager.sol";
 
 // solhint-disable not-rely-on-time
+/// @title StrollManager
+/// @author Harsh Prakash <0xharsh@proton.me>
+/// @notice StrollManager is a contract that manages top ups for the Stroll protocol.
 contract StrollManager is IStrollManager, Ownable {
     IConstantFlowAgreementV1 public immutable CFA_V1;
     
