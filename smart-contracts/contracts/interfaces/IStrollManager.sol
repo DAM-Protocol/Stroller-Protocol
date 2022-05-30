@@ -23,20 +23,43 @@ interface IStrollManager {
     /// Custom error to indicate that null address has been passed.
     error ZeroAddress();
 
-    error InvalidStrategy(address _strategy);
+    /// Custom error to indicate addition/usage of invalid strategy.
+    /// @param strategy Address of the strategy contract.
+    error InvalidStrategy(address strategy);
 
+    /// Custom error to indicate top up is not required and the index id associated with that top-up.
+    /// @param index Index id associated with the top up request.
     error TopUpNotRequired(bytes32 index);
 
     /// Custom error to indicate that supertoken provided isn't supported.
     /// @param superToken Address of the supertoken which isn't supported.
     error UnsupportedSuperToken(address superToken);
 
+    /// Custom error to indicate caller of a function is unauthorized.
+    /// @param caller Address of the caller of the function.
+    /// @param expectedCaller Address of the expected caller.
     error UnauthorizedCaller(address caller, address expectedCaller);
 
+    /// Custom error to indicate expiration time given is invalid.
+    /// @param expirationTimeGiven Time given as expiration time by a user.
+    /// @param timeNow Current time (block.timestamp).
     error InvalidExpirationTime(uint64 expirationTimeGiven, uint256 timeNow);
 
+    /// Custom error to indicate the limits given by a user are insufficient.
+    /// @param limitGiven Limit (upper/lower) given by the user.
+    /// @param minLimit Minimum limit (upper/lower) expected.
     error InsufficientLimits(uint64 limitGiven, uint64 minLimit);
 
+    /**
+     * @notice Struct representing a top-up.
+     * @param user Address of the user who created the top-up.
+     * @param superToken Supertoken which needs to be topped up for the user.
+     * @param strategy Address of the strategy contract to be used for top-up.
+     * @param liquidityToken Address of the token to be liquidated/used for conversion to supertoken and topping-up.
+     * @param expiry Expiration time of the top-up request.
+     * @param lowerLimit Minimum time necessary in order to trigger a top-up.
+     * @param upperLimit Determines the amount of supertokens required in terms of time (ex: 1 week's worth, 2 days worth etc).
+     */
     struct TopUp {
         address user;
         ISuperToken superToken;
