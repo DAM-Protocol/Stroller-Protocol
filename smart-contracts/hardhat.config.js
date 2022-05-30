@@ -2,13 +2,12 @@ require("@nomiclabs/hardhat-truffle5");
 require("dotenv").config();
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
-//require("@nomiclabs/hardhat-web3");
+// require("@nomiclabs/hardhat-web3");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
-//require("hardhat-contract-sizer");
+require("hardhat-contract-sizer");
 require("hardhat-deploy");
-require("hardhat-tracer");
-
+// require("hardhat-tracer");
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -18,17 +17,20 @@ require("hardhat-tracer");
  */
 module.exports = {
   solidity: {
-    version: "0.8.4",
+    compilers: [
+      {
+        version: "0.8.13",
+      },
+    ],
     settings: {
       optimizer: {
-        enabled: true, // Make it true after testing or before deployment.
+        enabled: false, // Make it true after testing or before deployment.
         runs: 200,
       },
     },
   },
   networks: {
-    hardhat: {
-    },
+    hardhat: {},
     /*
     hardhat: {
       initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.

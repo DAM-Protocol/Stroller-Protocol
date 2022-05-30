@@ -45,8 +45,8 @@ const increaseTime = async (seconds) => {
 };
 
 const resetTime = async (seconds) => {
-  increaseTime(getTimeStampNow() - await currentBlockTimestamp())
-}
+  increaseTime(getTimeStampNow() - (await currentBlockTimestamp()));
+};
 
 const setNextBlockTimestamp = async (timestamp) => {
   await network.provider.send("evm_setNextBlockTimestamp", [timestamp]);

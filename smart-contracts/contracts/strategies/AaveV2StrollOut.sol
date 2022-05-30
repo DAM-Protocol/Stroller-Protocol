@@ -1,19 +1,33 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity 0.8.13;
 
+import { ILendingPoolAddressesProvider, ILendingPool, IProtocolDataProvider } from "../interfaces/IAaveV2.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./StrategyBase.sol";
-import "../interfaces/IERC20Mod.sol";
 
-/// @title ERC20 auto top-up contract.
+/// @title AaveV2 strategy for Stroller Protocol.
 /// @author rashtrakoff (rashtrakoff@pm.me).
-contract ERC20StrollOut is StrategyBase {
+contract AaveV2StrollOut is StrategyBase {
     using SafeERC20 for IERC20Mod;
 
-    constructor(address _strollManager) {
-        if (_strollManager == address(0)) revert ZeroAddress();
+    ILendingPoolAddressesProvider
+        private immutable LENDINGPOOL_ADDRESSES_PROVIDER;
+    IProtocolDataProvider private immutable PROTOCOL_DATA_PROVIDER;
+
+    constructor(
+        address _strollManager,
+        ILendingPoolAddressesProvider _lendingPoolAddressProvider,
+        IProtocolDataProvider _protocolDataProvider
+    ) {
+        if (
+            _strollManager == address(0) ||
+            address(_lendingPoolAddressProvider) == address(0) ||
+            address(_protocolDataProvider) == address(0)
+        ) revert ZeroAddress();
 
         strollManager = _strollManager;
+        LENDINGPOOL_ADDRESSES_PROVIDER = _lendingPoolAddressProvider;
+        PROTOCOL_DATA_PROVIDER = _protocolDataProvider;
     }
 
     /// @dev IStrategy.topUp implementation.
@@ -27,17 +41,27 @@ contract ERC20StrollOut is StrategyBase {
             revert UnauthorizedCaller(msg.sender, strollManager);
 
         IERC20Mod underlyingToken = IERC20Mod(_superToken.getUnderlyingToken());
-
+        address lendingPool = LENDINGPOOL_ADDRESSES_PROVIDER.getLendingPool();
+        (address aToken, , ) = PROTOCOL_DATA_PROVIDER.getReserveTokensAddresses(
+            address(underlyingToken)
+        );
         (
             uint256 underlyingAmount,
             uint256 adjustedAmount
         ) = _toUnderlyingAmount(_superTokenAmount, underlyingToken.decimals());
 
-        // Transfer the underlying tokens from the user
-        underlyingToken.safeTransferFrom(
+        // Transfer the aTokens from the user.
+        IERC20Mod(aToken).safeTransferFrom(
             _user,
             address(this),
             underlyingAmount
+        );
+
+        // Withdraw underlying token from Aave using transferred aTokens.
+        ILendingPool(lendingPool).withdraw(
+            address(underlyingToken),
+            underlyingAmount,
+            address(this)
         );
 
         // Giving the Supertoken max allowance for upgrades if that hasn't been done before.
@@ -72,6 +96,14 @@ contract ERC20StrollOut is StrategyBase {
         override
         returns (bool)
     {
-        return _superToken.getUnderlyingToken() != address(0);
+        try
+            PROTOCOL_DATA_PROVIDER.getReserveTokensAddresses(
+                _superToken.getUnderlyingToken()
+            )
+        returns (address, address, address) {
+            return true;
+        } catch {
+            return false;
+        }
     }
 }

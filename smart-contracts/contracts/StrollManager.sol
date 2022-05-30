@@ -1,56 +1,29 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.4;
+pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IStrategy.sol";
-import "./interfaces/IERC20Mod.sol";
 import { IConstantFlowAgreementV1 } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IERC20Mod.sol";
+import "./interfaces/IStrollManager.sol";
 
 // solhint-disable not-rely-on-time
-contract StrollManager is Ownable {
-
-    struct TopUp {
-        address user;
-        ISuperToken superToken;
-        IStrategy strategy;
-        address liquidityToken;
-        uint64 expiry;
-        uint64 lowerLimit;
-        uint64 upperLimit;
-    }
-
-    uint64 public minLower;
-    uint64 public minUpper;
-    mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
-    mapping(address => bool) public approvedStrategies;
-
-    // solhint-disable-next-line
+/// @title StrollManager
+/// @author Harsh Prakash <0xharsh@proton.me>
+/// @notice StrollManager is a contract that manages top ups for the Stroll protocol.
+contract StrollManager is IStrollManager, Ownable {
     IConstantFlowAgreementV1 public immutable CFA_V1;
+    
+    /// @dev IStrollManager.minLower implementation.
+    uint64 public override minLower;
 
-    event TopUpCreated(
-        bytes32 indexed id,
-        address indexed user,
-        address indexed superToken,
-        address strategy,
-        address liquidityToken,
-        uint256 expiry,
-        uint256 lowerLimit,
-        uint256 upperLimit
-    );
+    /// @dev IStrollManager.minUpper implementation.
+    uint64 public override minUpper;
 
-    event TopUpDeleted(
-        bytes32 indexed id,
-        address indexed user,
-        address indexed superToken,
-        address strategy,
-        address liquidityToken
-    );
+    /// @dev IStrollManager.approvedStrategies implementation.
+    mapping(address => bool) public override approvedStrategies;
 
-    event PerformedTopUp(bytes32 indexed id, uint256 topUpAmount);
-    event AddedApprovedStrategy(address indexed strategy);
-    event RemovedApprovedStrategy(address indexed strategy);
-
+    mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
+    
     constructor(
         address _icfa,
         uint64 _minLower,
@@ -61,14 +34,7 @@ contract StrollManager is Ownable {
         minUpper = _minUpper;
     }
 
-    function getTopUpIndex(
-        address _user,
-        address _superToken,
-        address _liquidityToken
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encode(_user, _superToken, _liquidityToken));
-    }
-
+    /// @dev IStrollManager.createTopUp implementation.
     function createTopUp(
         address _superToken,
         address _strategy,
@@ -76,19 +42,29 @@ contract StrollManager is Ownable {
         uint64 _expiry,
         uint64 _lowerLimit,
         uint64 _upperLimit
-    ) external {
-        require(
-            _superToken != address(0) &&
-            _strategy != address(0) &&
-            _liquidityToken != address(0),
-            "Null Address"
-        );
+    ) external override {
+        if (
+            _superToken == address(0) ||
+            _strategy == address(0) ||
+            _liquidityToken == address(0)
+        ) revert ZeroAddress();
 
-        require(_expiry > block.timestamp, "Invalid time");
-        require(_lowerLimit >= minLower, "Increase lower limit");
-        require(_upperLimit >= minUpper, "Increase upper limit");
-        require(approvedStrategies[_strategy], "strategy not allowed");
-        require(IStrategy(_strategy).isSupportedSuperToken(ISuperToken(_superToken)), "super token not supported");
+        if (_expiry <= block.timestamp)
+            revert InvalidExpirationTime(_expiry, block.timestamp);
+
+        if (_lowerLimit < minLower)
+            revert InsufficientLimits(_lowerLimit, minLower);
+
+        if (_upperLimit < minUpper)
+            revert InsufficientLimits(_upperLimit, minUpper);
+
+
+        if (!approvedStrategies[_strategy]) revert InvalidStrategy(_strategy);
+        if (
+            !IStrategy(_strategy).isSupportedSuperToken(
+                ISuperToken(_superToken)
+            )
+        ) revert UnsupportedSuperToken(address(_superToken));
 
         // check if topUp already exists for given user and superToken
         bytes32 index = getTopUpIndex(msg.sender, _superToken, _liquidityToken);
@@ -116,50 +92,134 @@ contract StrollManager is Ownable {
         );
     }
 
+    /// @dev IStrollManager.performTopUp implementation.
+    function performTopUp(
+        address _user,
+        address _superToken,
+        address _liquidityToken
+    ) external override {
+        performTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
+    }
+
+    /// @dev IStrollManager.deleteTopUp implementation.
+    function deleteTopUp(
+        address _user,
+        address _superToken,
+        address _liquidityToken
+    ) external override {
+        deleteTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
+    }
+
+    /// @dev IStrollManager.deleteBatch implementation.
+    function deleteBatch(bytes32[] calldata _indices) external override {
+        // delete multiple top ups
+        for (uint256 i = 0; i < _indices.length; i++) {
+            deleteTopUpByIndex(_indices[i]);
+        }
+    }
+
+    /// @dev IStrollManager.addApprovedStrategy implementation.
+    function addApprovedStrategy(address _strategy)
+        external
+        override
+        onlyOwner
+    {
+        if (_strategy == address(0)) revert InvalidStrategy(_strategy);
+
+        approvedStrategies[_strategy] = true;
+        emit AddedApprovedStrategy(_strategy);
+    }
+
+    /// @dev IStrollManager.removeApprovedStrategy implementation.
+    function removeApprovedStrategy(address _strategy) external onlyOwner {
+        if (approvedStrategies[_strategy]) {
+            delete approvedStrategies[_strategy];
+            emit RemovedApprovedStrategy(_strategy);
+        }
+    }
+
+    /// @dev IStrollManager.getTopUp implementation.
     function getTopUp(
         address _user,
         address _superToken,
         address _liquidityToken
-    )
-    public
-    view
-    returns (TopUp memory)
-    {
-        return getTopUpByIndex(
-            getTopUpIndex(_user, _superToken, _liquidityToken)
-        );
+    ) external view returns (TopUp memory) {
+        return
+            getTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
     }
 
-    function getTopUpByIndex(bytes32 _index)
-    public
-    view
-    returns (TopUp memory)
-    {
-        return topUps[_index];
-    }
-
+    /// @dev IStrollManager.checkTopUp implementation.
     function checkTopUp(
         address _user,
         address _superToken,
         address _liquidityToken
-    ) public view returns (uint256) {
-        return checkTopUpByIndex(
-            getTopUpIndex(_user, _superToken, _liquidityToken)
+    ) external view override returns (uint256) {
+        return
+            checkTopUpByIndex(
+                getTopUpIndex(_user, _superToken, _liquidityToken)
+            );
+    }
+
+    /// @dev IStrollManager.performTopUpByIndex implementation.
+    function performTopUpByIndex(bytes32 _index) public {
+        uint256 topUpAmount = checkTopUpByIndex(_index);
+
+        if (topUpAmount == 0) revert TopUpNotRequired(_index);
+
+        TopUp memory topUp = topUps[_index];
+        topUp.strategy.topUp(
+            topUp.user,
+            ISuperToken(topUp.superToken),
+            topUpAmount
+        );
+        emit PerformedTopUp(_index, topUpAmount);
+    }
+
+    /// @dev IStrollManager.deleteTopUpByIndex implementation.
+    function deleteTopUpByIndex(bytes32 _index) public {
+        TopUp memory topUp = topUps[_index];
+
+        if (topUp.user != msg.sender && topUp.expiry >= block.timestamp)
+            revert UnauthorizedCaller(msg.sender, topUp.user);
+
+        delete topUps[_index];
+
+        emit TopUpDeleted(
+            _index,
+            topUp.user,
+            address(topUp.superToken),
+            address(topUp.strategy),
+            topUp.liquidityToken
         );
     }
 
-    function checkTopUpByIndex(bytes32 _index) public view returns (uint256 amount) {
+    /// @dev IStrollManager.getTopUpByIndex implementation.
+    function getTopUpByIndex(bytes32 _index)
+        public
+        view
+        returns (TopUp memory)
+    {
+        return topUps[_index];
+    }
+
+    /// @dev IStrollManager.checkTopUpByIndex implementation.
+    function checkTopUpByIndex(bytes32 _index)
+        public
+        view
+        returns (uint256 _amount)
+    {
         TopUp memory topUp = topUps[_index];
 
         if (
             topUp.user == address(0) || // Task exists and has a valid user
             topUp.expiry <= block.timestamp || // Task exists and current time is before task end time
-            IERC20(topUp.liquidityToken).allowance(
+            IERC20Mod(topUp.liquidityToken).allowance(
                 topUp.user,
                 address(topUp.strategy) // contract is allowed to spend
             ) ==
             0 ||
-            IERC20(topUp.liquidityToken).balanceOf(topUp.user) == 0 // check user balance
+            IERC20Mod(topUp.liquidityToken).balanceOf(topUp.user) == 0 || // check user balance
+            !IStrategy(topUp.strategy).isSupportedSuperToken(topUp.superToken) // Supertoken isn't supported anymore.
         ) return 0;
 
         int96 flowRate = CFA_V1.getNetFlow(topUp.superToken, topUp.user);
@@ -176,75 +236,12 @@ contract StrollManager is Ownable {
         return 0;
     }
 
-    function performTopUp(
+    /// @dev IStrollManager.getTopUpIndex implementation.
+    function getTopUpIndex(
         address _user,
         address _superToken,
         address _liquidityToken
-    ) external {
-        performTopUpByIndex(getTopUpIndex(_user, _superToken, _liquidityToken));
-    }
-
-    function performTopUpByIndex(bytes32 _index) public {
-        uint256 topUpAmount = checkTopUpByIndex(_index);
-        require(topUpAmount > 0, "TopUp check failed");
-
-        TopUp memory topUp = topUps[_index];
-        topUp.strategy.topUp(
-            topUp.user,
-            ISuperToken(topUp.superToken),
-            topUpAmount
-        );
-        emit PerformedTopUp(_index, topUpAmount);
-    }
-
-    function isApprovedStrategy(address strategy) external view returns(bool) {
-        return approvedStrategies[strategy];
-    }
-
-    function addApprovedStrategy(address strategy) external onlyOwner {
-        require(strategy != address(0), "empty strategy");
-        approvedStrategies[strategy] = true;
-        emit AddedApprovedStrategy(strategy);
-    }
-
-    function removeApprovedStrategy(address strategy) external onlyOwner {
-        if(approvedStrategies[strategy]) {
-            delete approvedStrategies[strategy];
-            emit RemovedApprovedStrategy(strategy);
-        }
-    }
-
-    function deleteTopUpByIndex(bytes32 _index) public {
-        TopUp memory topUp = topUps[_index];
-        require(
-            topUp.user == msg.sender || topUp.expiry < block.timestamp,
-            "Can't delete TopUp"
-        );
-        delete topUps[_index];
-
-        emit TopUpDeleted(
-            _index,
-            topUp.user,
-            address(topUp.superToken),
-            address(topUp.strategy),
-            topUp.liquidityToken
-        );
-    }
-
-    function deleteTopUp(
-        address _user,
-        address _superToken,
-        address _liquidityToken
-    ) public {
-        deleteTopUpByIndex(
-            getTopUpIndex(_user, _superToken, _liquidityToken)
-        );
-    }
-
-    function deleteBatch(bytes32[] calldata _indices) public {
-        // delete multiple top ups
-        for (uint256 i = 0; i < _indices.length; i++) {
-            deleteTopUpByIndex(_indices[i]);
-        }
+    ) public pure returns (bytes32) {
+        return keccak256(abi.encode(_user, _superToken, _liquidityToken));
     }
 }
