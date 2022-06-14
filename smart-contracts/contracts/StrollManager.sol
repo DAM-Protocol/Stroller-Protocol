@@ -113,7 +113,8 @@ contract StrollManager is IStrollManager, Ownable {
     /// @dev IStrollManager.deleteBatch implementation.
     function deleteBatch(bytes32[] calldata _indices) external override {
         // delete multiple top ups
-        for (uint256 i = 0; i < _indices.length; i++) {
+        uint256 length = _indices.length;
+        for (uint256 i; i < length; ++i) {
             deleteTopUpByIndex(_indices[i]);
         }
     }
