@@ -2,12 +2,16 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IERC20Mod.sol";
 import "../interfaces/IStrategy.sol";
 
 /// @title Base abstract contract for all strategies.
 /// @author rashtrakoff (rashtrakoff@pm.me).
 abstract contract StrategyBase is IStrategy, Ownable {
+
+    using SafeERC20 for IERC20Mod;
+
     /// @dev IStrategy.strollManager implementation.
     address public override strollManager;
 
@@ -27,10 +31,7 @@ abstract contract StrategyBase is IStrategy, Ownable {
     /// @dev IStrategy.emergencyWithdraw implementation.
     function emergencyWithdraw(address _token) external override onlyOwner {
         uint256 tokenBalance = IERC20Mod(_token).balanceOf(address(this));
-
-        if (!IERC20Mod(_token).transfer(msg.sender, tokenBalance))
-            revert TransferFailed(msg.sender, _token, tokenBalance);
-
+        IERC20Mod(_token).safeTransfer(msg.sender, tokenBalance);
         emit EmergencyWithdrawInitiated(msg.sender, _token, tokenBalance);
     }
 

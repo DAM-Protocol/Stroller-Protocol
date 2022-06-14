@@ -2,13 +2,14 @@
 pragma solidity 0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./StrategyBase.sol";
 import "../interfaces/IERC20Mod.sol";
+import "./StrategyBase.sol";
 
 /// @title ERC20 auto top-up contract.
 /// @author rashtrakoff (rashtrakoff@pm.me).
 contract ERC20StrollOut is StrategyBase {
     using SafeERC20 for IERC20Mod;
+    using SafeERC20 for ISuperToken;
 
     constructor(address _strollManager) {
         if (_strollManager == address(0)) revert ZeroAddress();
@@ -58,10 +59,7 @@ contract ERC20StrollOut is StrategyBase {
         // We are assuming that `upgrade` function will revert upon failure of supertoken transfer to user.
         // If not, we need to check for the same after calling this method.
         _superToken.upgrade(adjustedAmount);
-
-        if (!_superToken.transfer(_user, adjustedAmount))
-            revert TransferFailed(_user, address(_superToken), adjustedAmount);
-
+        _superToken.safeTransfer(_user, adjustedAmount);
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 

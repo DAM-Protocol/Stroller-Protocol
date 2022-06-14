@@ -31,12 +31,6 @@ interface IStrategy {
     /// @param expectedCaller Address of the expected caller of the function.
     error UnauthorizedCaller(address caller, address expectedCaller);
 
-    /// Custom error to indicate that a ERC20 token transfer has failed.
-    /// @param receiver Address of the receiver of the transfer event.
-    /// @param token Address of the token being transferred in the event.
-    /// @param amount Amount of tokens being transferred in the event.
-    error TransferFailed(address receiver, address token, uint256 amount);
-
     /// Function to get the current StrollManager contract which interacts with the-
     /// strategy contract.
     /// @return StrollManager contract address.
