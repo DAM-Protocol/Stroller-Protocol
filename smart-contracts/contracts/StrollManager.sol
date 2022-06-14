@@ -125,9 +125,10 @@ contract StrollManager is IStrollManager, Ownable {
         onlyOwner
     {
         if (_strategy == address(0)) revert InvalidStrategy(_strategy);
-
-        approvedStrategies[_strategy] = true;
-        emit AddedApprovedStrategy(_strategy);
+        if(!approvedStrategies[_strategy]) {
+            approvedStrategies[_strategy] = true;
+            emit AddedApprovedStrategy(_strategy);
+        }
     }
 
     /// @dev IStrollManager.removeApprovedStrategy implementation.
