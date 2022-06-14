@@ -9,6 +9,7 @@ import "./StrategyBase.sol";
 /// @author rashtrakoff (rashtrakoff@pm.me).
 contract AaveV2StrollOut is StrategyBase {
     using SafeERC20 for IERC20Mod;
+    using SafeERC20 for ISuperToken;
 
     ILendingPoolAddressesProvider
         private immutable LENDINGPOOL_ADDRESSES_PROVIDER;
@@ -82,10 +83,7 @@ contract AaveV2StrollOut is StrategyBase {
         // We are assuming that `upgrade` function will revert upon failure of supertoken transfer to user.
         // If not, we need to check for the same after calling this method.
         _superToken.upgrade(adjustedAmount);
-
-        if (!_superToken.transfer(_user, adjustedAmount))
-            revert TransferFailed(_user, address(_superToken), adjustedAmount);
-
+        _superToken.safeTransfer(_user, adjustedAmount);
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 
