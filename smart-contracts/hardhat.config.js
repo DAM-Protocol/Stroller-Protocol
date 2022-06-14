@@ -62,7 +62,7 @@ module.exports = {
     token: "MATIC",
     gasPrice: 40, // Set to 40 GWei
     gasPriceApi:
-      "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
+        "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
     showTimeSpent: true,
   },
   etherscan: {
@@ -81,6 +81,7 @@ module.exports = {
       4: "0x917A19E71a2811504C4f64aB33c132063B5772a5",
     },
     mocha: {
-        timeout: 0,
+      timeout: 0,
     },
+  }
 };

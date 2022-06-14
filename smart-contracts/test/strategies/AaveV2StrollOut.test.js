@@ -272,7 +272,7 @@ describe("#2 - AaveV2StrollOut: TopUp", function () {
       strollOutInstance
         .connect(mockManager)
         .topUp(user.address, daix.address, parseUnits("51", 18)),
-      "ERC20: insufficient allowance"
+        "ERC20: transfer amount exceeds allowance"
     );
 
     assert.ok(rigthError);
