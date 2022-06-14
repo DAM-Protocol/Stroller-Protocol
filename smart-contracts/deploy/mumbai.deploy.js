@@ -6,87 +6,53 @@ module.exports = async function ({ deployments, getNamedAccounts }) {
 
     console.info("\n--Beginning infrastructure deployment--\n");
 
-    const strollHelper = await deploy("StrollHelper", {
-        from: deployer,
-        log: true,
-        skipIfAlreadyDeployed: true,
+  const strollManagerTestnet = await deploy("StrollManagerTestnet", {
+    from: deployer,
+    args: [
+      "0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873",
+      12 * 60 * 60,
+      getSeconds(2),
+    ],
+    log: true,
+    skipIfAlreadyDeployed: true,
+  });
+
+  const ERC20StrollOut = await deploy("ERC20StrollOut", {
+    from: deployer,
+    args: [strollManagerTestnet.address],
+    log: true,
+    skipIfAlreadyDeployed: true,
+  });
+
+  try {
+    await hre.run("verify:verify", {
+      address: strollManagerTestnet.address,
+      constructorArguments: [
+        "0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873",
+        12 * 60 * 60,
+        getSeconds(2),
+      ],
+      contract: "contracts/StrollManagerTestnet.sol:StrollManagerTestnet",
     });
+  } catch (error) {
+    console.log(
+      `${error.message} for StrollManagerTestnet at address ${strollManagerTestnet.address}`
+    );
+  }
 
-    const strollResolver = await deploy("StrollResolver", {
-        from: deployer,
-        args: [1, getSeconds(5), getSeconds(1)],
-        log: true,
-        skipIfAlreadyDeployed: true,
+  try {
+    await hre.run("verify:verify", {
+      address: ERC20StrollOut.address,
+      constructorArguments: [strollManagerTestnet.address],
+      contract: "contracts/strategies/ERC20StrollOut.sol:ERC20StrollOut",
     });
+  } catch (error) {
+    console.log(
+      `${error.message} for ERC20StrollOut at address ${ERC20StrollOut.address}`
+    );
+  }
 
-    const aaveStrollOut = await deploy("AaveStrollOut", {
-        from: deployer,
-        args: [strollResolver.address],
-        libraries: {
-            StrollHelper: strollHelper.address,
-        },
-        log: true,
-        skipIfAlreadyDeployed: true,
-    });
-
-    const registry = await deploy("Registry", {
-        from: deployer,
-        args: [strollResolver.address, "100"],
-        libraries: {
-            StrollHelper: strollHelper.address,
-        },
-        log: true,
-        skipIfAlreadyDeployed: true,
-    });
-
-    const resolver = await ethers.getContractAt("StrollResolver", strollResolver.address);
-
-    // await resolver.changeStrollRegistry(registry.address);
-
-    try {
-        await hre.run("verify:verify", {
-            address: strollHelper.address,
-            contract: "contracts/common/StrollHelper.sol:StrollHelper",
-        });
-    } catch (error) {
-        console.log(`${error.message} for StrollHelper at address ${strollHelper.address}`);
-    }
-
-    try {
-        await hre.run("verify:verify", {
-            address: strollResolver.address,
-            constructorArguments: [1, getSeconds(5), getSeconds(1)],
-            contract: "contracts/common/StrollResolver.sol:StrollResolver",
-        });
-    } catch (error) {
-        console.log(`${error.message} for StrollResolver at address ${strollResolver.address}`);
-    }
-
-    try {
-        await hre.run("verify:verify", {
-            address: aaveStrollOut.address,
-            libraries: {
-                StrollHelper: strollHelper.address,
-            },
-            constructorArguments: [strollResolver.address],
-            contract: "contracts/strategies/AaveStrollOut.sol:AaveStrollOut",
-        });
-    } catch (error) {
-        console.log(`${error.message} for AaveStrollOut at address ${aaveStrollOut.address}`);
-    }
-
-    try {
-        await hre.run("verify:verify", {
-            address: registry.address,
-            libraries: {
-                StrollHelper: strollHelper.address,
-            },
-            constructorArguments: [strollResolver.address, "100"],
-            contract: "contracts/Registry.sol:Registry",
-        });
-    } catch (error) {
-        console.log(`${error.message} for Registry at address ${registry.address}`);
-    }
-
-    console.info("\n--Infrastructure setup complete !--\n");
+  console.info("\n--Infrastructure setup complete !--\n");
 };
+
+module.exports.tags = ["mumbai"];
