@@ -1,0 +1,273 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable node/no-extraneous-require */
+/* eslint-disable no-undef */
+const { expect } = require("chai");
+const { ethers, waffle } = require("hardhat");
+const { provider, loadFixture } = waffle;
+const { parseUnits } = require("@ethersproject/units");
+const SuperfluidSDK = require("@superfluid-finance/sdk-core");
+const {
+  getBigNumber,
+  getSeconds,
+  increaseTime,
+  impersonateAccounts,
+  getTimeStampNow,
+} = require("../../helpers/helpers");
+const { constants } = require("ethers");
+
+describe("ERC20 Stroll Out Testing (Testnet Deployment)", function () {
+  const DAI = {
+    symbol: "DAI",
+    token: "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+    aToken: "0x639cB7b21ee2161DF9c882483C9D55c90c20Ca3e",
+    superToken: "0x06577b0B09e69148A45b866a0dE6643b6caC40Af",
+    decimals: 18,
+  };
+
+  const USDC = {
+    symbol: "USDC",
+    token: "0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e",
+    aToken: "0x2271e3Fef9e15046d09E1d78a8FF038c691E9Cf9",
+    superToken: "0x86beec8a6e0e0ded142998ed8ddcbce118f91864",
+    decimals: 6,
+  };
+
+  const USDT = {
+    symbol: "USDT",
+    token: "0xBD21A10F619BE90d6066c941b04e340841F1F989",
+    aToken: "0xF8744C0bD8C7adeA522d6DDE2298b17284A79D1b",
+    superToken: "0x3a27ff22eef2db03e91613ca4ba37e21ee21458a",
+    decimals: 6,
+  };
+
+  const AAVE = {
+    symbol: "AAVE",
+    token: "0x341d1f30e77D3FBfbD43D17183E2acb9dF25574E",
+    aToken: "0x7ec62b6fC19174255335C8f4346E0C2fcf870a6B",
+    superToken: "0x98d12ca6c1ef4b99ce48cb616a3ac25806826cc8",
+    decimals: 18,
+  };
+
+  const WETH = {
+    symbol: "WETH",
+    token: "0x3C68CE8504087f89c640D02d133646d98e64ddd9",
+    aToken: "0x7aE20397Ca327721F013BB9e140C707F82871b56",
+    superToken: "0xe2cd1c038bd473c02b01fb355b58e0a6d7183dde",
+    decimals: 18,
+  };
+
+  const WBTC = {
+    symbol: "WBTC",
+    token: "0x0d787a4a1548f673ed375445535a6c7A1EE56180",
+    aToken: "0xc9276ECa6798A14f64eC33a526b547DAd50bDa2F",
+    superToken: "0x0173d76385b5948560e4012ca63ff79de9f2da9e",
+    decimals: 8,
+  };
+
+  // Test account containing all the aTokens and supertokens
+  // Make sure to have 10000 aaveUSDC, 10000 aaveDAI and 20 aaveWETH (Aave version)
+  // The whale already has 1000 aaveDAIx but 0 aaveUSDCx
+  const whaleAddr = "0x917A19E71a2811504C4f64aB33c132063B5772a5";
+
+  const CFA_V1 = "0x49e565Ed1bdc17F3d220f72DF0857C26FA83F873";
+
+  const [admin, dummy] = provider.getWallets();
+  const ethersProvider = provider;
+
+  let sf;
+  let whale;
+  let DAIContract, USDCContract, WETHContract;
+  let USDCx, DAIx, WETHx;
+  let ERC20StrollOut, ERC20StrollOutFactory;
+  let app, appFactory;
+
+  before(async () => {
+    [whale] = await impersonateAccounts([whaleAddr]);
+
+    DAIContract = await ethers.getContractAt("IERC20", DAI.token);
+    USDCContract = await ethers.getContractAt("IERC20", USDC.token);
+    WETHContract = await ethers.getContractAt("IERC20", WETH.token);
+
+    sf = await SuperfluidSDK.Framework.create({
+      networkName: "hardhat",
+      dataMode: "WEB3_ONLY",
+      resolverAddress: "0x8C54C83FbDe3C59e59dd6E324531FB93d4F504d3", // Mumbai testnet resolver
+      protocolReleaseVersion: "v1",
+      provider: ethersProvider,
+    });
+
+    USDCx = await sf.loadSuperToken(USDC.superToken);
+    DAIx = await sf.loadSuperToken(DAI.superToken);
+    WETHx = await sf.loadSuperToken(WETH.superToken);
+
+    ERC20StrollOutFactory = await ethers.getContractFactory("ERC20StrollOut", {
+      admin,
+    });
+
+    appFactory = await ethers.getContractFactory("StrollManagerTestnet", {
+      admin,
+    });
+  });
+
+  async function setupEnv() {
+    app = await appFactory.deploy(CFA_V1, 12 * 60 * 60, getSeconds(2));
+    await app.deployed();
+
+    ERC20StrollOut = await ERC20StrollOutFactory.deploy(app.address);
+    await ERC20StrollOut.deployed();
+
+    await approveAndUpgrade();
+  }
+
+  async function approveAndUpgrade() {
+    await USDCContract.connect(whale).approve(
+        USDC.superToken,
+        parseUnits("1000000", 6)
+    );
+    await DAIContract.connect(whale).approve(
+        DAI.superToken,
+        parseUnits("1000000", 18)
+    );
+    await WETHContract.connect(whale).approve(
+        WETH.superToken,
+        parseUnits("1000000", 18)
+    );
+
+    // Required if super token amounts aren't sufficient.
+    // await USDCx.upgrade({ amount: parseUnits("1000", 18) }).exec(whale);
+    // await DAIx.upgrade({ amount: parseUnits("1000", 18) }).exec(whale);
+    // await WETHx.upgrade({ amount: parseUnits("10", 18) }).exec(whale);
+  }
+
+  it("should create a topup", async () => {
+    await loadFixture(setupEnv);
+
+    expiry = getTimeStampNow() + getSeconds(60);
+
+    // We expect this to not fail.
+    // Run this test using --logs tag and see if "TopUpCreated" event has been emitted in console.
+    await app
+        .connect(whale)
+        .createTopUp(
+            DAI.superToken,
+            ERC20StrollOut.address,
+            DAI.token,
+            expiry,
+            getSeconds(1),
+            getSeconds(5)
+        );
+
+    result = await app.getTopUp(whaleAddr, DAI.superToken, DAI.token);
+
+    expect(result[0]).to.equal(whaleAddr);
+    expect(result[1]).to.equal(DAI.superToken);
+    expect(result[2]).to.equal(ERC20StrollOut.address);
+    expect(result[3]).to.equal(DAI.token);
+    expect(result[4]).to.be.closeTo(getBigNumber(expiry), getBigNumber(100));
+    expect(result[5]).to.equal(getBigNumber(getSeconds(1)));
+    expect(result[6]).to.equal(getBigNumber(getSeconds(5)));
+  });
+
+  it("should check top up", async () => {
+    await loadFixture(setupEnv);
+
+    await DAIContract.connect(whale).approve(
+        ERC20StrollOut.address,
+        parseUnits("1000", 18)
+    );
+
+    expiry = getTimeStampNow() + getSeconds(60);
+
+    userFlowRate = parseUnits("1000", 18).div(getBigNumber(getSeconds(30)));
+
+    await app
+        .connect(whale)
+        .createTopUp(
+            DAI.superToken,
+            ERC20StrollOut.address,
+            DAI.token,
+            expiry,
+            getSeconds(2),
+            getSeconds(7)
+        );
+
+    await sf.cfaV1
+        .createFlow({
+          superToken: DAI.superToken,
+          receiver: dummy.address,
+          flowRate: userFlowRate,
+        })
+        .exec(whale);
+
+    await increaseTime(getSeconds(29));
+
+    topUpResult = await app.checkTopUp(whaleAddr, DAI.superToken, DAI.token);
+
+    expect(topUpResult).to.be.gt(constants.Zero);
+    expect(topUpResult).to.be.closeTo(
+        getBigNumber(userFlowRate).mul(getBigNumber(getSeconds(7))),
+        parseUnits("1", 18)
+    );
+  });
+
+  it.only("should perform top up", async () => {
+    await loadFixture(setupEnv);
+
+    await DAIContract.connect(whale).approve(
+        ERC20StrollOut.address,
+        parseUnits("1000", 18)
+    );
+
+    expiry = getTimeStampNow() + getSeconds(60);
+
+    userFlowRate = parseUnits("1000", 18).div(getBigNumber(getSeconds(30)));
+
+    await app
+        .connect(whale)
+        .createTopUp(
+            DAI.superToken,
+            ERC20StrollOut.address,
+            DAI.token,
+            expiry,
+            getSeconds(2),
+            getSeconds(7)
+        );
+
+    await sf.cfaV1
+        .createFlow({
+          superToken: DAI.superToken,
+          receiver: dummy.address,
+          flowRate: userFlowRate,
+        })
+        .exec(whale);
+
+    await increaseTime(getSeconds(29));
+
+    topUpResult = await app.checkTopUp(whaleAddr, DAI.superToken, DAI.token);
+
+    expect(topUpResult).to.be.gt(constants.Zero);
+    expect(topUpResult).to.be.closeTo(
+        getBigNumber(userFlowRate).mul(getBigNumber(getSeconds(7))),
+        parseUnits("1", 18)
+    );
+
+    balanceBeforeDAIx = await DAIx.balanceOf({
+      account: whaleAddr,
+      providerOrSigner: ethersProvider,
+    });
+
+    await app.performTopUp(whaleAddr, DAI.superToken, DAI.token);
+
+    balanceAfterDAIx = await DAIx.balanceOf({
+      account: whaleAddr,
+      providerOrSigner: ethersProvider,
+    });
+
+    expect(
+        getBigNumber(balanceAfterDAIx).sub(getBigNumber(balanceBeforeDAIx))
+    ).to.be.closeTo(
+        getBigNumber(userFlowRate).mul(getBigNumber(getSeconds(7))),
+        parseUnits("10", 18)
+    );
+  });
+});
