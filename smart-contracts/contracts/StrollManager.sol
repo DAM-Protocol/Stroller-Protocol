@@ -170,7 +170,7 @@ contract StrollManager is IStrollManager, Ownable {
         TopUp memory topUp = topUps[_index];
         topUp.strategy.topUp(
             topUp.user,
-            ISuperToken(topUp.superToken),
+            topUp.superToken,
             topUpAmount
         );
         emit PerformedTopUp(_index, topUpAmount);
