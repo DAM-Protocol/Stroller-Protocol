@@ -12,7 +12,7 @@ import "./interfaces/IStrollManager.sol";
 /// @notice StrollManager is a contract that manages top ups for the Stroll protocol.
 contract StrollManager is IStrollManager, Ownable {
     IConstantFlowAgreementV1 public immutable CFA_V1;
-    
+
     /// @dev IStrollManager.minLower implementation.
     uint64 public override minLower;
 
@@ -23,7 +23,7 @@ contract StrollManager is IStrollManager, Ownable {
     mapping(address => bool) public override approvedStrategies;
 
     mapping(bytes32 => TopUp) private topUps; //id = sha3(user, superToken, liquidityToken)
-    
+
     constructor(
         address _icfa,
         uint64 _minLower,
@@ -43,12 +43,6 @@ contract StrollManager is IStrollManager, Ownable {
         uint64 _lowerLimit,
         uint64 _upperLimit
     ) external override {
-        if (
-            _superToken == address(0) ||
-            _strategy == address(0) ||
-            _liquidityToken == address(0)
-        ) revert ZeroAddress();
-
         if (_expiry <= block.timestamp)
             revert InvalidExpirationTime(_expiry, block.timestamp);
 
@@ -58,27 +52,42 @@ contract StrollManager is IStrollManager, Ownable {
         if (_upperLimit < minUpper)
             revert InsufficientLimits(_upperLimit, minUpper);
 
-
-        if (!approvedStrategies[_strategy]) revert InvalidStrategy(_strategy);
-        if (
-            !IStrategy(_strategy).isSupportedSuperToken(
-                ISuperToken(_superToken)
-            )
-        ) revert UnsupportedSuperToken(address(_superToken));
-
-        // check if topUp already exists for given user and superToken
         bytes32 index = getTopUpIndex(msg.sender, _superToken, _liquidityToken);
 
-        TopUp memory topUp = TopUp( // create new TopUp or update topup
-            msg.sender,
-            ISuperToken(_superToken),
-            IStrategy(_strategy),
-            _liquidityToken,
-            _expiry,
-            _lowerLimit,
-            _upperLimit
-        );
-        topUps[index] = topUp;
+        // If index owner/user is address(0), we are creating a new top-up.
+        if (topUps[index].user != msg.sender) {
+            if (
+                _superToken == address(0) ||
+                _strategy == address(0) ||
+                _liquidityToken == address(0)
+            ) revert ZeroAddress();
+
+            if (!approvedStrategies[_strategy])
+                revert InvalidStrategy(_strategy);
+            if (
+                !IStrategy(_strategy).isSupportedSuperToken(
+                    ISuperToken(_superToken)
+                )
+            ) revert UnsupportedSuperToken(address(_superToken));
+
+            TopUp memory topUp = TopUp( // create new TopUp or update topup
+                msg.sender,
+                ISuperToken(_superToken),
+                IStrategy(_strategy),
+                _liquidityToken,
+                _expiry,
+                _lowerLimit,
+                _upperLimit
+            );
+
+            topUps[index] = topUp;
+        } else {
+            // Else just update the limits and expiry, save gas.
+
+            topUps[index].expiry = _expiry;
+            topUps[index].lowerLimit = _lowerLimit;
+            topUps[index].upperLimit = _upperLimit;
+        }
 
         emit TopUpCreated(
             index,
@@ -126,7 +135,7 @@ contract StrollManager is IStrollManager, Ownable {
         onlyOwner
     {
         if (_strategy == address(0)) revert InvalidStrategy(_strategy);
-        if(!approvedStrategies[_strategy]) {
+        if (!approvedStrategies[_strategy]) {
             approvedStrategies[_strategy] = true;
             emit AddedApprovedStrategy(_strategy);
         }
@@ -168,23 +177,26 @@ contract StrollManager is IStrollManager, Ownable {
 
         if (topUpAmount == 0) revert TopUpNotRequired(_index);
 
-        TopUp memory topUp = topUps[_index];
-        topUp.strategy.topUp(
-            topUp.user,
-            topUp.superToken,
-            topUpAmount
-        );
+        TopUp storage topUp = topUps[_index];
+
+        ISuperToken superToken = topUp.superToken;
+        IStrategy strategy = topUp.strategy;
+
+        if (!strategy.isSupportedSuperToken(superToken))
+            revert UnsupportedSuperToken(address(superToken));
+
+        strategy.topUp(topUp.user, superToken, topUpAmount);
         emit PerformedTopUp(_index, topUpAmount);
     }
 
     /// @dev IStrollManager.deleteTopUpByIndex implementation.
     function deleteTopUpByIndex(bytes32 _index) public {
-        TopUp memory topUp = topUps[_index];
+        TopUp storage topUp = topUps[_index];
 
-        if (topUp.user != msg.sender && topUp.expiry >= block.timestamp)
-            revert UnauthorizedCaller(msg.sender, topUp.user);
-
-        delete topUps[_index];
+        address user = topUp.user;
+    
+        if (user != msg.sender && topUp.expiry >= block.timestamp)
+            revert UnauthorizedCaller(msg.sender, user);
 
         emit TopUpDeleted(
             _index,
@@ -193,6 +205,8 @@ contract StrollManager is IStrollManager, Ownable {
             address(topUp.strategy),
             topUp.liquidityToken
         );
+
+        delete topUps[_index];
     }
 
     /// @dev IStrollManager.getTopUpByIndex implementation.
@@ -210,7 +224,7 @@ contract StrollManager is IStrollManager, Ownable {
         view
         returns (uint256 _amount)
     {
-        TopUp memory topUp = topUps[_index];
+        TopUp storage topUp = topUps[_index];
 
         if (
             topUp.user == address(0) || // Task exists and has a valid user
