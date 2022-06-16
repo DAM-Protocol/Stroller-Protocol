@@ -55,8 +55,8 @@ const deploySuperfluid = async (account) => {
   await superTokenFactory.initializeCustomSuperToken(_native.address);
   nativeToken = new ethers.Contract(_native.address, ISuperToken.abi, account);
 
-  resfturn {
-    : sf,
+  return {
+    sf: sf,
     superTokenFactory: superTokenFactory,
     nativeToken: nativeToken,
     interfaces: {
