@@ -15,10 +15,17 @@ interface IStrollManager {
         uint256 lowerLimit,
         uint256 upperLimit
     );
-    event TopUpDeleted(bytes32 indexed id, address indexed user, address indexed superToken, address strategy, address liquidityToken);
+    event TopUpDeleted(
+        bytes32 indexed id,
+        address indexed user,
+        address indexed superToken,
+        address strategy,
+        address liquidityToken
+    );
     event PerformedTopUp(bytes32 indexed id, uint256 topUpAmount);
     event AddedApprovedStrategy(address indexed strategy);
     event RemovedApprovedStrategy(address indexed strategy);
+    event LimitsChanged(uint64 lowerLimit, uint64 upperLimit);
 
     /// Custom error to indicate that null address has been passed.
     error ZeroAddress();
@@ -49,6 +56,11 @@ interface IStrollManager {
     /// @param limitGiven Limit (upper/lower) given by the user.
     /// @param minLimit Minimum limit (upper/lower) expected.
     error InsufficientLimits(uint64 limitGiven, uint64 minLimit);
+
+    /// Custom error to indicate that the limits are wrong (lower limit >= upper limit).
+    /// @param lowerLimit Limit (upper/lower) given by the user.
+    /// @param upperLimit Minimum limit (upper/lower) expected.
+    error WrongLimits(uint64 lowerLimit, uint64 upperLimit);
 
     /**
      * @notice Struct representing a top-up.
@@ -81,6 +93,15 @@ interface IStrollManager {
      * @param _strategy The address of strategy contract to remove.
      */
     function removeApprovedStrategy(address _strategy) external;
+
+    /**
+     * @notice Sets the global limits for top-ups.
+     * @param _lowerLimit Triggers top up if stream can't be continued for this amount of seconds.
+     * @param _upperLimit Increase supertoken balance to continue stream for this amount of seconds.
+     * @dev If the previous top-ups don't adhere to the current global limits, the global limits will be enforced.
+     * i.e., max(global limit, user defined limit) is always taken.
+     */
+    function setLimits(uint64 _lowerLimit, uint64 _upperLimit) external;
 
     /**
      *  @notice Creates a new top up task.
@@ -118,7 +139,10 @@ interface IStrollManager {
      * @param _index Index of top up.
      * @return The top up.
      */
-    function getTopUpByIndex(bytes32 _index) external view returns (TopUp memory);
+    function getTopUpByIndex(bytes32 _index)
+        external
+        view
+        returns (TopUp memory);
 
     /**
      * @notice Gets a top up by index.
@@ -138,7 +162,10 @@ interface IStrollManager {
      * @param _index Index of top up.
      * @return _amount The amount of supertoken to top up.
      */
-    function checkTopUpByIndex(bytes32 _index) external view returns (uint256 _amount);
+    function checkTopUpByIndex(bytes32 _index)
+        external
+        view
+        returns (uint256 _amount);
 
     /**
      * @notice Checks if a top up is required.

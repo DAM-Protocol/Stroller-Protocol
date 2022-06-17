@@ -3,14 +3,14 @@
 /* eslint-disable no-undef */
 
 const { parseUnits } = require("@ethersproject/units");
-const { expect } = require("chai");
+const { expect, assert } = require("chai");
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const helper = require("./../helpers/helpers");
 const devEnv = require("./utils/setEnv");
 
-const MIN_LOWER = 2;
-const MIN_UPPER = 7;
+const MIN_LOWER = helper.getSeconds(2);
+const MIN_UPPER = helper.getSeconds(5);
 
 let accounts, owner, user, streamReceiver;
 let env;
@@ -370,16 +370,24 @@ describe("#3 - StrollManager: Register TopUps", function () {
         strategy.address,
         dai.address,
         expiry + 1000,
-        20,
-        20
+        helper.getSeconds(20),
+        helper.getSeconds(20)
       );
     const topUp = await strollManager.getTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(topUp.lowerLimit, 20, "wrong lowerLimit on update");
-    assert.equal(topUp.upperLimit, 20, "wrong upperLimit on update");
+    assert.equal(
+      topUp.lowerLimit,
+      helper.getSeconds(20),
+      "wrong lowerLimit on update"
+    );
+    assert.equal(
+      topUp.upperLimit,
+      helper.getSeconds(20),
+      "wrong upperLimit on update"
+    );
     assert.equal(topUp.expiry, expiry + 1000, "wrong expiry on update");
   });
 });
@@ -798,5 +806,69 @@ describe("#6 - perform Top Up", function () {
     await expect(
       strollManager.performTopUp(user.address, daix.address, dai.address)
     ).to.be.revertedWith(`TopUpNotRequired("${result}")`);
+  });
+  it("Case #6.4 - TopUp using max values (global limits)", async () => {
+    const flowRate = parseUnits("300", 18).div(
+      helper.getBigNumber(helper.getSeconds(30))
+    );
+    await strollManager
+      .connect(user)
+      .createTopUp(
+        daix.address,
+        strategy.address,
+        dai.address,
+        helper.getTimeStampNow() + helper.getSeconds(365),
+        helper.getSeconds(5),
+        helper.getSeconds(5)
+      );
+
+    let tx = await strollManager.setLimits(
+      helper.getSeconds(6),
+      helper.getSeconds(8)
+    );
+    const limitsChangedEvent = await helper.getEvents(tx, "LimitsChanged");
+    assert.equal(
+      limitsChangedEvent[0].args.lowerLimit,
+      helper.getSeconds(6),
+      "wrong lower limit"
+    );
+    assert.equal(
+      limitsChangedEvent[0].args.upperLimit,
+      helper.getSeconds(8),
+      "wrong upper limit"
+    );
+
+    // approve superToken
+    await dai.connect(user).approve(daix.address, parseUnits("10000", 18));
+    // approve strategy
+    await dai.connect(user).approve(strategy.address, parseUnits("10000", 18));
+    // get some superToken
+    await daix.connect(user).upgrade(parseUnits("20", 18));
+    await createStream(daix, user, streamReceiver, flowRate.toString(), "0x");
+
+    let balance = await daix.balanceOf(user.address);
+    console.log("Balance before increase time: ", balance.toString());
+
+    await helper.increaseTime(3600 * 24 * 5);
+
+    balance = await daix.balanceOf(user.address);
+    console.log("Balance after increase time: ", balance.toString());
+
+    tx = await strollManager.performTopUp(
+      user.address,
+      daix.address,
+      dai.address
+    );
+
+    const TopUpEvent = await helper.getEvents(tx, "PerformedTopUp");
+    const after = await daix.balanceOf(user.address);
+
+    console.log("After: ", after.toString());
+
+    expect(after.sub(balance)).to.be.closeTo(
+      TopUpEvent[0].args.topUpAmount,
+      parseUnits("0.01", 18)
+    );
+    assert.isAbove(after, balance, "balance should go up");
   });
 });

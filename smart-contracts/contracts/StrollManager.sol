@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IERC20Mod.sol";
 import "./interfaces/IStrollManager.sol";
 
+
 // solhint-disable not-rely-on-time
 /// @title StrollManager
 /// @author Harsh Prakash <0xharsh@proton.me>
@@ -29,6 +30,9 @@ contract StrollManager is IStrollManager, Ownable {
         uint64 _minLower,
         uint64 _minUpper
     ) {
+        if (_icfa == address(0)) revert ZeroAddress();
+        if (_minLower >= _minUpper) revert WrongLimits(_minLower, _minUpper);
+
         CFA_V1 = IConstantFlowAgreementV1(_icfa);
         minLower = _minLower;
         minUpper = _minUpper;
@@ -149,6 +153,20 @@ contract StrollManager is IStrollManager, Ownable {
         }
     }
 
+    /// @dev IStrollManager.setLimits implementation.
+    function setLimits(uint64 _lowerLimit, uint64 _upperLimit)
+        external
+        onlyOwner
+    {
+        if (_lowerLimit >= _upperLimit)
+            revert WrongLimits(_lowerLimit, _upperLimit);
+
+        minLower = _lowerLimit;
+        minUpper = _upperLimit;
+
+        emit LimitsChanged(_lowerLimit, _upperLimit);
+    }
+
     /// @dev IStrollManager.getTopUp implementation.
     function getTopUp(
         address _user,
@@ -194,7 +212,7 @@ contract StrollManager is IStrollManager, Ownable {
         TopUp storage topUp = topUps[_index];
 
         address user = topUp.user;
-    
+
         if (user != msg.sender && topUp.expiry >= block.timestamp)
             revert UnauthorizedCaller(msg.sender, user);
 
@@ -244,8 +262,12 @@ contract StrollManager is IStrollManager, Ownable {
             uint256 superBalance = topUp.superToken.balanceOf(topUp.user);
             uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
 
-            if (superBalance <= (positiveFlowRate * topUp.lowerLimit)) {
-                return positiveFlowRate * topUp.upperLimit;
+            // Selecting max between user defined limits and global limits.
+            uint64 maxLowerLimit = (topUp.lowerLimit < minLower)? minLower: topUp.lowerLimit;
+            uint64 maxUpperLimit = (topUp.upperLimit < minUpper)? minUpper: topUp.upperLimit;
+
+            if (superBalance <= (positiveFlowRate * maxLowerLimit)) {
+                return positiveFlowRate * maxUpperLimit;
             }
         }
 
