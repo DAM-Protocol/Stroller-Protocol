@@ -28,13 +28,13 @@ contract ERC20StrollOut is StrategyBase {
             revert UnauthorizedCaller(msg.sender, strollManager);
 
         IERC20Mod underlyingToken = IERC20Mod(_superToken.getUnderlyingToken());
+        (uint256 underlyingAmount, uint256 adjustedAmount) = _toUnderlyingAmount(
+            _superTokenAmount,
+            underlyingToken.balanceOf(_user),
+            underlyingToken.decimals()
+        );
 
-        (
-            uint256 underlyingAmount,
-            uint256 adjustedAmount
-        ) = _toUnderlyingAmount(_superTokenAmount, underlyingToken.decimals());
-
-        // Transfer the underlying tokens from the user
+        // Transfer the underlying tokens from the user.  
         underlyingToken.safeTransferFrom(
             _user,
             address(this),
@@ -60,6 +60,7 @@ contract ERC20StrollOut is StrategyBase {
         // If not, we need to check for the same after calling this method.
         _superToken.upgrade(adjustedAmount);
         _superToken.safeTransfer(_user, adjustedAmount);
+
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 

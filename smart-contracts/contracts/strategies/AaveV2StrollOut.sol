@@ -49,7 +49,11 @@ contract AaveV2StrollOut is StrategyBase {
         (
             uint256 underlyingAmount,
             uint256 adjustedAmount
-        ) = _toUnderlyingAmount(_superTokenAmount, underlyingToken.decimals());
+        ) = _toUnderlyingAmount(
+                _superTokenAmount,
+                IERC20Mod(aToken).balanceOf(_user),
+                IERC20Mod(aToken).decimals()
+            );
 
         // Transfer the aTokens from the user.
         IERC20Mod(aToken).safeTransferFrom(
@@ -84,6 +88,7 @@ contract AaveV2StrollOut is StrategyBase {
         // If not, we need to check for the same after calling this method.
         _superToken.upgrade(adjustedAmount);
         _superToken.safeTransfer(_user, adjustedAmount);
+
         emit TopUp(_user, address(_superToken), adjustedAmount);
     }
 

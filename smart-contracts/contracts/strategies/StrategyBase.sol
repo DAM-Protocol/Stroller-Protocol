@@ -9,7 +9,6 @@ import "../interfaces/IStrategy.sol";
 /// @title Base abstract contract for all strategies.
 /// @author rashtrakoff (rashtrakoff@pm.me).
 abstract contract StrategyBase is IStrategy, Ownable {
-
     using SafeERC20 for IERC20Mod;
 
     /// @dev IStrategy.strollManager implementation.
@@ -35,9 +34,14 @@ abstract contract StrategyBase is IStrategy, Ownable {
         emit EmergencyWithdrawInitiated(msg.sender, _token, tokenBalance);
     }
 
-    function _toUnderlyingAmount(uint256 _amount, uint256 _underlyingDecimals)
+    function _toUnderlyingAmount(
+        uint256 _superTokenAmount,
+        uint256 _maxLiquidBalance,
+        uint256 _underlyingDecimals
+    )
         internal
         pure
+        virtual
         returns (uint256 _underlyingAmount, uint256 _adjustedAmount)
     {
         uint256 factor;
@@ -45,17 +49,31 @@ abstract contract StrategyBase is IStrategy, Ownable {
             // If underlying has less decimals
             // one can upgrade less "granular" amount of tokens
             factor = 10**(18 - _underlyingDecimals);
-            _underlyingAmount = _amount / factor;
-            // remove precision errors
+            _underlyingAmount = _superTokenAmount / factor;
+
+            // If the user doesn't have enough liquidity tokens to upgrade to the required supertoken amount,
+            // use all the available balance of the liquidity tokens.
+            if (_underlyingAmount > _maxLiquidBalance)
+                _underlyingAmount = _maxLiquidBalance;
+
             _adjustedAmount = _underlyingAmount * factor;
         } else if (_underlyingDecimals > 18) {
             // If underlying has more decimals
             // one can upgrade more "granular" amount of tokens
             factor = 10**(_underlyingDecimals - 18);
-            _underlyingAmount = _amount * factor;
-            _adjustedAmount = _amount;
+            _underlyingAmount = _superTokenAmount * factor;
+
+            // If the user doesn't have enough liquidity tokens to upgrade to the required supertoken amount,
+            // use all the available balance of the liquidity tokens.
+            if (_underlyingAmount > _maxLiquidBalance)
+                _underlyingAmount = _maxLiquidBalance;
+
+            _adjustedAmount = _underlyingAmount / factor;
         } else {
-            _underlyingAmount = _adjustedAmount = _amount;
+            _underlyingAmount = _adjustedAmount = (_superTokenAmount >
+                _maxLiquidBalance)
+                ? _maxLiquidBalance
+                : _superTokenAmount;
         }
     }
 }
