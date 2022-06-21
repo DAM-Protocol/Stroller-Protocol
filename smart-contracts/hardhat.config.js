@@ -30,43 +30,36 @@ module.exports = {
     },
   },
   networks: {
-    hardhat: {},
-    /*
     hardhat: {
       initialBaseFeePerGas: 0, // workaround from https://github.com/sc-forks/solidity-coverage/issues/652#issuecomment-896330136 . Remove when that issue is closed.
       forking: {
-        // url: process.env.POLYGON_NODE_URL,
-        // blockNumber: 23736635,
-        url: process.env.MUMBAI_NODE_URL,
-        blockNumber: 25426446,
+        url: process.env.MAINNET_NODE_URL,
+        // blockNumber: ,
         enabled: false,
       },
       saveDeployments: false,
     },
-
-    mumbai: {
-      url: process.env.MUMBAI_NODE_URL,
+    testnet: {
+      url: process.env.TESTNET_NODE_URL,
       accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
       saveDeployments: true,
     },
-    rinkeby: {
-      url: process.env.ROPSTEN_NODE_URL,
-      accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
+    mainnet: {
+      url: process.env.MAINNET_NODE_URL,
+      accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
       saveDeployments: true,
     },
-    */
   },
-  gasReporter: {
+  /* gasReporter: {
     enabled: true,
     currency: "USD",
     token: "MATIC",
     gasPrice: 40, // Set to 40 GWei
-    gasPriceApi:
-        "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
+    gasPriceApi: "https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice",
     showTimeSpent: true,
-  },
+  }, */
   etherscan: {
-    apiKey: process.env.POLYGONSCAN_KEY, // Change this to POLYGONSCAN_KEY when deploying on Polygon mainnet or mumbai testnet.
+    apiKey: process.env.VERIFICATION_KEY,
   },
   contractSizer: {
     alphaSort: true,
@@ -76,9 +69,8 @@ module.exports = {
   namedAccounts: {
     deployer: {
       default: 0,
-      137: "0x452181dAe31Cf9f42189df71eC64298993BEe6d3",
-      80001: "0x917A19E71a2811504C4f64aB33c132063B5772a5",
-      4: "0x917A19E71a2811504C4f64aB33c132063B5772a5",
+      137: process.env.MAINNET_PUBLIC_KEY,
+      80001: process.env.TESTNET_PUBLIC_KEY,
     },
     mocha: {
       timeout: 0,
