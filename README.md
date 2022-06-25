@@ -18,13 +18,9 @@ Users can invest their tokens in other DeFi protocols like `AAVE`, `Harvest`, et
 
 Using the Top-Up service provided by Stroller Protocol, users can now be tension free about their streams running dry. Approve, create a stroller and relax. The protocol handles the headaches for you.
 
-## How It's Made
+## Deployments
 
-The Stroller Protocol is built on `SuperFluid`, `ChainLink` and `Moralis`.
-
-Users approve their invested tokens and create a stroller.
-ChainLink Keepers keep checking for users' Super Token balances. If the balance can not keep the stream running for a certain threshold of time, the invested tokens are liquidated and wrapped to Super Tokens and sent to the user. This method is called Top Up.
-
-📉 Low super-token balance => sell some investments => keep stream running 🤑
-
-The events are indexed by moralis and displayed on the frontend. We use Moralis triggers to mutate data from the Event table to a Stroller table. We also use The Graph for querying all the stream related data.
+| Chain          | Contract                                                                                                                                                                                    |
+|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Polygon Mumbai | **StrollManager**: 0x896d448119F6901d27845f77083Dfe5456C05099<br>**ERC20StrollOut**: 0x20af3f0f49237D0c3f8557dBED9d4B1A6ed4d552<br>**AaveV2StrollOut**: 0x7606bC78f13d8e9A1B38CE69Fb508cbB0dFa7e13  |
+| Rinkeby        | **StrollManager**: 0x1166363D3005F96E6e2D940860BC346414E0cFB9<br>**ERC20StrollOut**: 0xa6C537b0e5162b6a220522D0657749144d1a180e<br>**AaveV2StrollOut: None**                                            |
