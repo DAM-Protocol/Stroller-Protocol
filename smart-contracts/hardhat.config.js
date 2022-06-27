@@ -24,7 +24,7 @@ module.exports = {
     ],
     settings: {
       optimizer: {
-        enabled: false, // Make it true after testing or before deployment.
+        enabled: true, // Make it true after testing or before deployment.
         runs: 200,
       },
     },
@@ -39,12 +39,17 @@ module.exports = {
       },
       saveDeployments: false,
     },
-    testnet: {
+    mumbai: {
       url: process.env.TESTNET_NODE_URL,
       accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
       saveDeployments: true,
     },
-    mainnet: {
+    rinkeby: {
+      url: process.env.TESTNET_NODE_URL,
+      accounts: [`0x${process.env.TESTNET_PRIVATE_KEY}`],
+      saveDeployments: true,
+    },
+    polygon: {
       url: process.env.MAINNET_NODE_URL,
       accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
       saveDeployments: true,
@@ -69,6 +74,7 @@ module.exports = {
   namedAccounts: {
     deployer: {
       default: 0,
+      4: process.env.TESTNET_PUBLIC_KEY,
       137: process.env.MAINNET_PUBLIC_KEY,
       80001: process.env.TESTNET_PUBLIC_KEY,
     },
