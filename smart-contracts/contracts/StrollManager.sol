@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IERC20Mod.sol";
 import "./interfaces/IStrollManager.sol";
 
-
 // solhint-disable not-rely-on-time
 /// @title StrollManager
 /// @author Harsh Prakash <0xharsh@proton.me>
@@ -182,7 +181,7 @@ contract StrollManager is IStrollManager, Ownable {
         address _user,
         address _superToken,
         address _liquidityToken
-    ) external view override returns (uint256) {
+    ) external view override returns (uint256, string memory) {
         return
             checkTopUpByIndex(
                 getTopUpIndex(_user, _superToken, _liquidityToken)
@@ -191,17 +190,14 @@ contract StrollManager is IStrollManager, Ownable {
 
     /// @dev IStrollManager.performTopUpByIndex implementation.
     function performTopUpByIndex(bytes32 _index) public {
-        uint256 topUpAmount = checkTopUpByIndex(_index);
+        (uint256 topUpAmount, string memory code) = checkTopUpByIndex(_index);
 
-        if (topUpAmount == 0) revert TopUpNotRequired(_index);
+        if (topUpAmount == 0) revert TopUpFailed(_index, code);
 
         TopUp storage topUp = topUps[_index];
 
         ISuperToken superToken = topUp.superToken;
         IStrategy strategy = topUp.strategy;
-
-        if (!strategy.isSupportedSuperToken(superToken))
-            revert UnsupportedSuperToken(address(superToken));
 
         strategy.topUp(topUp.user, superToken, topUpAmount);
         emit PerformedTopUp(_index, topUpAmount);
@@ -240,21 +236,29 @@ contract StrollManager is IStrollManager, Ownable {
     function checkTopUpByIndex(bytes32 _index)
         public
         view
-        returns (uint256 _amount)
+        returns (uint256 _amount, string memory _reasonCode)
     {
         TopUp storage topUp = topUps[_index];
 
+        // Task exists and has a valid user.
+        if (topUp.user == address(0)) return (0, "SP01");
+        
+        // Task exists and current time is less than expiration time.
+        if (topUp.expiry <= block.timestamp) return (0, "SP02");
+
+        // Strategy contract is allowed to spend.
         if (
-            topUp.user == address(0) || // Task exists and has a valid user
-            topUp.expiry <= block.timestamp || // Task exists and current time is before task end time
             IERC20Mod(topUp.liquidityToken).allowance(
                 topUp.user,
-                address(topUp.strategy) // contract is allowed to spend
-            ) ==
-            0 ||
-            IERC20Mod(topUp.liquidityToken).balanceOf(topUp.user) == 0 || // check user balance
-            !IStrategy(topUp.strategy).isSupportedSuperToken(topUp.superToken) // Supertoken isn't supported anymore.
-        ) return 0;
+                address(topUp.strategy)
+            ) == 0
+        ) return (0, "SP03");
+
+        // User balance is 0.
+        if(IERC20Mod(topUp.liquidityToken).balanceOf(topUp.user) == 0) return (0, "SP04");
+        
+        // Supertoken is no longer supported by the strategy.
+        if(!IStrategy(topUp.strategy).isSupportedSuperToken(topUp.superToken)) return (0, "SP05");
 
         int96 flowRate = CFA_V1.getNetFlow(topUp.superToken, topUp.user);
 
@@ -263,15 +267,21 @@ contract StrollManager is IStrollManager, Ownable {
             uint256 positiveFlowRate = uint256(uint96(-1 * flowRate));
 
             // Selecting max between user defined limits and global limits.
-            uint64 maxLowerLimit = (topUp.lowerLimit < minLower)? minLower: topUp.lowerLimit;
-            uint64 maxUpperLimit = (topUp.upperLimit < minUpper)? minUpper: topUp.upperLimit;
+            uint64 maxLowerLimit = (topUp.lowerLimit < minLower)
+                ? minLower
+                : topUp.lowerLimit;
+            uint64 maxUpperLimit = (topUp.upperLimit < minUpper)
+                ? minUpper
+                : topUp.upperLimit;
 
             if (superBalance <= (positiveFlowRate * maxLowerLimit)) {
-                return positiveFlowRate * maxUpperLimit;
+                return (positiveFlowRate * maxUpperLimit, "");
             }
+
+            return (0, "SP06");
         }
 
-        return 0;
+        return (0, "SP07");
     }
 
     /// @dev IStrollManager.getTopUpIndex implementation.

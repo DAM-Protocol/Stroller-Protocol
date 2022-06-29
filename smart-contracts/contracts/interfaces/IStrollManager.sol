@@ -36,7 +36,11 @@ interface IStrollManager {
 
     /// Custom error to indicate top up is not required and the index id associated with that top-up.
     /// @param index Index id associated with the top up request.
-    error TopUpNotRequired(bytes32 index);
+    // error TopUpNotRequired(bytes32 index, string code);
+
+    /// Custom error to indicate top up is not required and the index id associated with that top-up.
+    /// @param index Index id associated with the top up request.
+    error TopUpFailed(bytes32 index, string code);
 
     /// Custom error to indicate that supertoken provided isn't supported.
     /// @param superToken Address of the supertoken which isn't supported.
@@ -160,12 +164,13 @@ interface IStrollManager {
     /**
      * @notice Checks if a top up is required by index.
      * @param _index Index of top up.
-     * @return _amount The amount of supertoken to top up.
+     * @return The amount of supertoken to top up.
+     * @return Reason for the amount to be 0. Useful to report errors.
      */
     function checkTopUpByIndex(bytes32 _index)
         external
         view
-        returns (uint256 _amount);
+        returns (uint256, string memory);
 
     /**
      * @notice Checks if a top up is required.
@@ -178,7 +183,7 @@ interface IStrollManager {
         address _user,
         address _superToken,
         address _liquidityToken
-    ) external view returns (uint256);
+    ) external view returns (uint256, string memory);
 
     /**
      * @notice Performs a top up by index.

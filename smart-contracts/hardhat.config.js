@@ -24,7 +24,7 @@ module.exports = {
     ],
     settings: {
       optimizer: {
-        enabled: true, // Make it true after testing or before deployment.
+        enabled: false, // Make it true after testing or before deployment.
         runs: 200,
       },
     },

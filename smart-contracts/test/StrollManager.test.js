@@ -560,12 +560,14 @@ describe("#5 - TopUps", function () {
     await createStream(daix, user, streamReceiver, "100000000000000", "0x");
     const expected = 100000000000000 * helper.getSeconds(5);
     await helper.increaseTime(3600 * 24 * 5);
-    const amount = await strollManager.checkTopUp(
+    const checkTopObj = await strollManager.checkTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, expected, "amount is wrong");
+
+    assert.equal(checkTopObj[0], expected, "amount is wrong");
+    assert.equal(checkTopObj[1], "", "reason code is wrong");
   });
   it("Case #5.2 - checkTopUp without stream", async () => {
     await strollManager
@@ -578,20 +580,25 @@ describe("#5 - TopUps", function () {
         helper.getSeconds(5),
         helper.getSeconds(5)
       );
-    const amount = await strollManager.checkTopUp(
+    // approve strategy
+    await dai.connect(user).approve(strategy.address, parseUnits("100", 18));
+
+    const checkTopObj = await strollManager.checkTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, 0, "amount should be zero");
+    assert.equal(checkTopObj[0], 0, "amount should be zero");
+    assert.equal(checkTopObj[1], "SP07");
   });
   it("Case #5.3 - checkTopUp without data should return zero", async () => {
-    const amount = await strollManager.checkTopUp(
+    const checkTopObj = await strollManager.checkTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, 0, "amount should be zero");
+    assert.equal(checkTopObj[0], 0, "wrong amount");
+    assert.equal(checkTopObj[1], "SP01", "wrong reason code");
   });
   it("Case #5.4 - checkTopUp without approved balance", async () => {
     await strollManager
@@ -613,12 +620,13 @@ describe("#5 - TopUps", function () {
     await createStream(daix, user, streamReceiver, "100000000000000", "0x");
 
     await helper.increaseTime(3600 * 24 * 5);
-    const amount = await strollManager.checkTopUp(
+    const checkTopObj = await strollManager.checkTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, 0, "amount is wrong");
+    assert.equal(checkTopObj[0], 0, "amount should be zero");
+    assert.equal(checkTopObj[1], "SP03", "wrong reason code");
   });
   it("Case #5.5 - checkTopUp without balance", async () => {
     await strollManager
@@ -643,12 +651,13 @@ describe("#5 - TopUps", function () {
     await dai.connect(user).transfer(owner.address, balance);
     await createStream(daix, user, streamReceiver, "100000000000000", "0x");
     await helper.increaseTime(3600 * 24 * 5);
-    const amount = await strollManager.checkTopUp(
+    const checkTopObj = await strollManager.checkTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, 0, "amount is wrong");
+    assert.equal(checkTopObj[0], 0, "amount should be zero");
+    assert.equal(checkTopObj[1], "SP04", "wrong reason code");
   });
   it("Case #5.6 - checkTopUp with netFlowPositive should return zero", async () => {
     await dai.mint(user.address, parseUnits("1000", 18));
@@ -666,9 +675,9 @@ describe("#5 - TopUps", function () {
 
     // approve superToken
     await dai.connect(user).approve(daix.address, parseUnits("100", 18));
-    await dai
-      .connect(streamReceiver)
-      .approve(daix.address, parseUnits("100", 18));
+    // await dai
+    //   .connect(streamReceiver)
+    //   .approve(daix.address, parseUnits("100", 18));
 
     // approve strategy
     await dai
@@ -678,12 +687,13 @@ describe("#5 - TopUps", function () {
     await daix.connect(user).upgrade(parseUnits("10", 18));
     await createStream(daix, user, streamReceiver, "100000000000000", "0x");
     await helper.increaseTime(3600 * 24 * 5);
-    const amount = await strollManager.checkTopUp(
+    const checkTopObj = await strollManager.checkTopUp(
       streamReceiver.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, 0, "amount is wrong");
+    assert.equal(checkTopObj[0], 0, "amount should be zero");
+    assert.equal(checkTopObj[1], "SP07", "wrong reason code");
   });
   it("Case #5.7 - checkTopUp with larger superToken balance should return zero", async () => {
     await strollManager
@@ -712,12 +722,13 @@ describe("#5 - TopUps", function () {
     await daix
       .connect(owner)
       .upgradeTo(user.address, parseUnits("100", 18), "0x");
-    const amount = await strollManager.checkTopUp(
+    const checkTopObj = await strollManager.checkTopUp(
       user.address,
       daix.address,
       dai.address
     );
-    assert.equal(amount, 0, "amount is wrong");
+    assert.equal(checkTopObj[0], 0, "amount should be zero");
+    assert.equal(checkTopObj[1], "SP06", "wrong reason code");
   });
 });
 
@@ -805,7 +816,7 @@ describe("#6 - perform Top Up", function () {
 
     await expect(
       strollManager.performTopUp(user.address, daix.address, dai.address)
-    ).to.be.revertedWith(`TopUpNotRequired("${result}")`);
+    ).to.be.revertedWith(`TopUpFailed("${result}", "SP01")`);
   });
   it("Case #6.4 - TopUp using max values (global limits)", async () => {
     const flowRate = parseUnits("300", 18).div(
