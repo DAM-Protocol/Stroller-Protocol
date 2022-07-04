@@ -200,27 +200,6 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
 
     assert.ok(rigthError);
   });
-  it("Case #2.2.2 - Should not topUp() if balance not enough", async () => {
-    const transferAmount = parseUnits("1000", 18);
-    await dai.connect(user).approve(strollOutInstance.address, 0);
-    const removedApproval = await dai.allowance(
-      user.address,
-      strollOutInstance.address
-    );
-    assert.equal(
-      removedApproval.toString(),
-      "0",
-      "approve clean up didn't work"
-    );
-    await dai.connect(user).approve(strollOutInstance.address, transferAmount);
-    const rigthError = await helper.expectedRevert(
-      strollOutInstance
-        .connect(mockManager)
-        .topUp(user.address, daix.address, transferAmount),
-      "transfer amount exceeds balance"
-    );
-    assert.ok(rigthError);
-  });
   it("Case #2.3 - Should perform topUp() - smart wallet", async () => {
     const transferAmount = parseUnits("100", 18);
     await dai.mint(mockReceiverContractInstance.address, parseUnits("100", 18));
@@ -261,8 +240,8 @@ describe("#2 - ERC20StrollOut: TopUp", function () {
 
 describe("#3 - ERC20StrollOut: underlying token decimals", function () {
   it("Case #3.1 - token decimals < 18", async () => {
-    const transferAmount = parseUnits("500", 18);
     const decimals = await mock20.decimals();
+    const transferAmount = parseUnits("500", decimals);
     assert.isBelow(Number(decimals), 18, "not < 18");
     const balance = await mock20.balanceOf(user.address);
     await mock20
@@ -270,7 +249,7 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
       .approve(strollOutInstance.address, transferAmount);
     const tx = await strollOutInstance
       .connect(mockManager)
-      .topUp(user.address, superMock20.address, transferAmount);
+      .topUp(user.address, superMock20.address, parseUnits("500", 18));
     const TopUpEvent = await helper.getEvents(tx, "TopUp");
     assert.equal(TopUpEvent[0].args.user, user.address, "not user");
     assert.equal(
@@ -280,36 +259,36 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
     );
     assert.equal(
       TopUpEvent[0].args.superTokenAmount.toString(),
-      transferAmount,
+      parseUnits("500", 18),
       "not right amount"
     );
     const superTokenBalance = await daix.balanceOf(user.address); // DAIx or superMock20 ?
-    const finalBalance = await mock20.balanceOf(user.address);
     assert.equal(
       superTokenBalance.toString(),
-      transferAmount,
+      parseUnits("500", 18),
       "(SuperToken) not right final balance"
     );
 
+    const finalBalance = await mock20.balanceOf(user.address);
     assert.equal(
       balance.toString(),
-      finalBalance.add(parseUnits("500", decimals)).toString(),
+      finalBalance.add(transferAmount).toString(),
       "(ERC20) - not right adjusted balance"
     );
   });
   it("Case #3.2 - token decimals > 18", async () => {
     await mock20.setDecimals(25);
-    const transferAmount = parseUnits("500", 18);
     const decimals = await mock20.decimals();
+    const transferAmount = parseUnits("500", decimals);
     assert.isAbove(Number(decimals), 18, "not > 18");
     const balance = await mock20.balanceOf(user.address);
     await mock20.connect(user).approve(strollOutInstance.address, 0);
     await mock20
       .connect(user)
-      .approve(strollOutInstance.address, parseUnits("500", 25));
+      .approve(strollOutInstance.address, transferAmount);
     const tx = await strollOutInstance
       .connect(mockManager)
-      .topUp(user.address, superMock20.address, transferAmount);
+      .topUp(user.address, superMock20.address, parseUnits("500", 18));
     const TopUpEvent = await helper.getEvents(tx, "TopUp");
     assert.equal(TopUpEvent[0].args.user, user.address, "not user");
     assert.equal(
@@ -319,19 +298,20 @@ describe("#3 - ERC20StrollOut: underlying token decimals", function () {
     );
     assert.equal(
       TopUpEvent[0].args.superTokenAmount.toString(),
-      transferAmount,
+      parseUnits("500", 18),
       "not right amount"
     );
     const superTokenBalance = await daix.balanceOf(user.address);
-    const finalBalance = await mock20.balanceOf(user.address);
     assert.equal(
       superTokenBalance.toString(),
-      transferAmount,
+      parseUnits("500", 18),
       "(SuperToken) - not right final balance"
     );
+
+    const finalBalance = await mock20.balanceOf(user.address);
     assert.equal(
       balance.toString(),
-      finalBalance.add(parseUnits("500", decimals)).toString(),
+      finalBalance.add(transferAmount).toString(),
       "(ERC20) - not right adjusted balance"
     );
   });

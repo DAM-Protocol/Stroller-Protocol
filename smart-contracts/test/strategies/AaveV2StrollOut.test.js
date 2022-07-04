@@ -272,40 +272,9 @@ describe("#2 - AaveV2StrollOut: TopUp", function () {
       strollOutInstance
         .connect(mockManager)
         .topUp(user.address, daix.address, parseUnits("51", 18)),
-        "ERC20: transfer amount exceeds allowance"
+      "ERC20: transfer amount exceeds allowance"
     );
 
-    assert.ok(rigthError);
-  });
-  it("Case #2.2.2 - Should not topUp() if balance not enough", async () => {
-    const transferAmount = parseUnits("1000", 18);
-    await aDAI.connect(user).approve(strollOutInstance.address, 0);
-    await mockLendingPoolProvider.mock.getLendingPool.returns(
-      mockLendingPool.address
-    );
-    // Mocking the protocol data provider such that if DAI token address is given,
-    // it will return some random address indicating that DAI is a supported asset.
-    await mockProtocolData.mock.getReserveTokensAddresses
-      .withArgs(dai.address)
-      .returns(aDAI.address, zeroAddress, zeroAddress);
-
-    await mockLendingPool.mock.withdraw.returns(transferAmount);
-    const removedApproval = await aDAI.allowance(
-      user.address,
-      strollOutInstance.address
-    );
-    assert.equal(
-      removedApproval.toString(),
-      "0",
-      "approve clean up didn't work"
-    );
-    await aDAI.connect(user).approve(strollOutInstance.address, transferAmount);
-    const rigthError = await helper.expectedRevert(
-      strollOutInstance
-        .connect(mockManager)
-        .topUp(user.address, daix.address, transferAmount),
-      "transfer amount exceeds balance"
-    );
     assert.ok(rigthError);
   });
   it("Case #2.3 - Should perform topUp() - smart wallet", async () => {
