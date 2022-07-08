@@ -20,7 +20,8 @@ Using the Top-Up service provided by Stroller Protocol, users can now be tension
 
 ## Deployments
 
-| Chain          | Contract                                                                                                                                                                                    |
-|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Polygon Mumbai | **StrollManager**: 0x896d448119F6901d27845f77083Dfe5456C05099<br>**ERC20StrollOut**: 0x20af3f0f49237D0c3f8557dBED9d4B1A6ed4d552<br>**AaveV2StrollOut**: 0x7606bC78f13d8e9A1B38CE69Fb508cbB0dFa7e13  |
-| Rinkeby        | **StrollManager**: 0x1166363D3005F96E6e2D940860BC346414E0cFB9<br>**ERC20StrollOut**: 0xa6C537b0e5162b6a220522D0657749144d1a180e<br>**AaveV2StrollOut: None**                                            |
+| Chain                 | Addresses                                                                                                                                                                                 |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Polygon Mumbai        | StrollManager: 0x896d448119F6901d27845f77083Dfe5456C05099<br>ERC20StrollOut: 0x20af3f0f49237D0c3f8557dBED9d4B1A6ed4d552<br>AaveV2StrollOut: 0x7606bC78f13d8e9A1B38CE69Fb508cbB0dFa7e13    |
+| Rinkeby               | StrollManager: 0x1166363D3005F96E6e2D940860BC346414E0cFB9<br>ERC20StrollOut: 0xa6C537b0e5162b6a220522D0657749144d1a180e                                                                   |
+| Polygon PoS (mainnet) | StrollManager: 0x74EC90e367493b3d0e57F0B09eeD760dfdAeDC89<br>ERC20StrollOut: 0x74408A7979a361dB0e16C9D471ab786cF9A59ed3<br>GelatoStrollKeeper: 0xc8c9E0E1B2E77Bb846b90a08A4E5F2567cFA69f4 |
