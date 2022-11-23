@@ -1,31 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.13;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IERC20Mod.sol";
 import "./StrategyBase.sol";
 
-/// @title ERC20 auto top-up contract.
-/// @author rashtrakoff (rashtrakoff@pm.me).
-contract ERC20StrollOut is StrategyBase {
+/// @title ERC20 Wrap Strategy contract
+contract WrapStrategy is StrategyBase {
     using SafeERC20 for IERC20Mod;
     using SafeERC20 for ISuperToken;
 
-    constructor(address _strollManager) {
-        if (_strollManager == address(0)) revert ZeroAddress();
+    constructor(address _manager) {
+        if (_manager == address(0)) revert ZeroAddress();
 
-        strollManager = _strollManager;
+        manager = _manager;
     }
 
-    /// @dev IStrategy.topUp implementation.
-    function topUp(
+    /// @dev IStrategy.Wrap implementation.
+    function Wrap(
         address _user,
         ISuperToken _superToken,
         uint256 _superTokenAmount
     ) external override {
-        // Only `StrollManager` should be able to call this method.
-        if (msg.sender != strollManager)
-            revert UnauthorizedCaller(msg.sender, strollManager);
+        // Only `Manager` should be able to call this method.
+        if (msg.sender != manager)
+            revert UnauthorizedCaller(msg.sender, manager);
 
         IERC20Mod underlyingToken = IERC20Mod(_superToken.getUnderlyingToken());
 
@@ -44,8 +43,8 @@ contract ERC20StrollOut is StrategyBase {
         // Giving the Supertoken max allowance for upgrades if that hasn't been done before.
         // We are checking for this condition as there is a possibility that in the lifetime of this contract,
         // `type(uint256).max` amount of allowance might be consumed (very low probability but still possible).
-        // Ideally this statement should not be in this contract but rather in `StrollManager`. For the sake-
-        // of compatibility with the existing deployments, we will not make further changes to `StrollManager`.
+        // Ideally this statement should not be in this contract but rather in `Manager`. For the sake-
+        // of compatibility with the existing deployments, we will not make further changes to `Manager`.
         if (
             underlyingToken.allowance(address(this), address(_superToken)) <=
             underlyingAmount
@@ -60,16 +59,16 @@ contract ERC20StrollOut is StrategyBase {
         // If not, we need to check for the same after calling this method.
         _superToken.upgrade(adjustedAmount);
         _superToken.safeTransfer(_user, adjustedAmount);
-        emit TopUp(_user, address(_superToken), adjustedAmount);
+        emit Wrapped(_user, address(_superToken), adjustedAmount);
     }
 
     /// @dev IStrategy.isSupportedSuperToken implementation.
-    function isSupportedSuperToken(ISuperToken _superToken)
+    function isSupportedSuperToken(ISuperToken superToken)
         public
         view
         override
         returns (bool)
     {
-        return _superToken.getUnderlyingToken() != address(0);
+        return superToken.getUnderlyingToken() != address(0);
     }
 }

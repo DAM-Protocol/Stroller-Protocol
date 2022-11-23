@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.13;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -7,55 +7,54 @@ import "../interfaces/IERC20Mod.sol";
 import "../interfaces/IStrategy.sol";
 
 /// @title Base abstract contract for all strategies.
-/// @author rashtrakoff (rashtrakoff@pm.me).
 abstract contract StrategyBase is IStrategy, Ownable {
 
     using SafeERC20 for IERC20Mod;
 
-    /// @dev IStrategy.strollManager implementation.
-    address public override strollManager;
+    /// @dev IStrategy.Manager implementation.
+    address public override manager;
 
-    /// @dev IStrategy.changeStrollManager implementation.
-    function changeStrollManager(address _newStrollManager)
+    /// @dev IStrategy.changeManager implementation.
+    function changeManager(address newManager)
         external
         override
         onlyOwner
     {
-        if (_newStrollManager == address(0)) revert ZeroAddress();
+        if (newManager == address(0)) revert ZeroAddress();
 
-        emit StrollManagerChanged(strollManager, _newStrollManager);
+        emit ManagerChanged(manager, newManager);
 
-        strollManager = _newStrollManager;
+        manager = newManager;
     }
 
     /// @dev IStrategy.emergencyWithdraw implementation.
-    function emergencyWithdraw(address _token) external override onlyOwner {
-        uint256 tokenBalance = IERC20Mod(_token).balanceOf(address(this));
-        IERC20Mod(_token).safeTransfer(msg.sender, tokenBalance);
-        emit EmergencyWithdrawInitiated(msg.sender, _token, tokenBalance);
+    function emergencyWithdraw(address token) external override onlyOwner {
+        uint256 tokenBalance = IERC20Mod(token).balanceOf(address(this));
+        IERC20Mod(token).safeTransfer(msg.sender, tokenBalance);
+        emit EmergencyWithdrawInitiated(msg.sender, token, tokenBalance);
     }
 
-    function _toUnderlyingAmount(uint256 _amount, uint256 _underlyingDecimals)
+    function _toUnderlyingAmount(uint256 amount, uint256 underlyingDecimals)
         internal
         pure
-        returns (uint256 _underlyingAmount, uint256 _adjustedAmount)
+        returns (uint256 underlyingAmount, uint256 adjustedAmount)
     {
         uint256 factor;
-        if (_underlyingDecimals < 18) {
+        if (underlyingDecimals < 18) {
             // If underlying has less decimals
             // one can upgrade less "granular" amount of tokens
-            factor = 10**(18 - _underlyingDecimals);
-            _underlyingAmount = _amount / factor;
+            factor = 10**(18 - underlyingDecimals);
+            underlyingAmount = amount / factor;
             // remove precision errors
-            _adjustedAmount = _underlyingAmount * factor;
-        } else if (_underlyingDecimals > 18) {
+            adjustedAmount = underlyingAmount * factor;
+        } else if (underlyingDecimals > 18) {
             // If underlying has more decimals
             // one can upgrade more "granular" amount of tokens
-            factor = 10**(_underlyingDecimals - 18);
-            _underlyingAmount = _amount * factor;
-            _adjustedAmount = _amount;
+            factor = 10**(underlyingDecimals - 18);
+            underlyingAmount = amount * factor;
+            adjustedAmount = amount;
         } else {
-            _underlyingAmount = _adjustedAmount = _amount;
+            underlyingAmount = adjustedAmount = amount;
         }
     }
 }

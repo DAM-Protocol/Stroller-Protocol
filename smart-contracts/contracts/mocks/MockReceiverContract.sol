@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.13;
+pragma solidity ^0.8.0;
 
 import {
 ISuperfluid, ISuperToken
@@ -11,7 +11,7 @@ IConstantFlowAgreementV1
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../interfaces/IStrollManager.sol";
+import "../interfaces/IManager.sol";
 
 contract MockReceiverContract {
 
@@ -52,8 +52,8 @@ contract MockReceiverContract {
         token.upgrade(amount);
     }
 
-    function createTopUp(
-        IStrollManager manager,
+    function createWrap(
+        IManager manager,
         address superToken,
         address strategy,
         address liquidityToken,
@@ -61,6 +61,6 @@ contract MockReceiverContract {
         uint64 lowerLimit,
         uint64 upperLimit
     ) public {
-        manager.createTopUp(superToken, strategy, liquidityToken, expiry, lowerLimit, upperLimit);
+        manager.createWrap(superToken, strategy, liquidityToken, expiry, lowerLimit, upperLimit);
     }
 }

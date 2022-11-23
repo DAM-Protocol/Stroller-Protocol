@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity 0.8.13;
+pragma solidity ^0.8.0;
 
 import { ISuperToken } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/superfluid/ISuperfluid.sol";
 
 interface IStrategy {
-    event TopUp(
+
+    event Wrapped(
         address indexed user,
         address indexed superToken,
         uint256 superTokenAmount
     );
-    event StrollManagerChanged(
-        address indexed oldStrollManager,
-        address indexed strollManager
+    event ManagerChanged(
+        address indexed oldManager,
+        address indexed Manager
     );
     event EmergencyWithdrawInitiated(
         address indexed receiver,
@@ -31,43 +32,43 @@ interface IStrategy {
     /// @param expectedCaller Address of the expected caller of the function.
     error UnauthorizedCaller(address caller, address expectedCaller);
 
-    /// Function to get the current StrollManager contract which interacts with the-
+    /// Function to get the current Manager contract which interacts with the-
     /// strategy contract.
-    /// @return StrollManager contract address.
-    function strollManager() external returns (address);
+    /// @return Manager contract address.
+    function manager() external returns (address);
 
-    /// Function to top-up an account based on certain conditions pre-defined in the StrollManager contract.
-    /// @param _user Address of the user whose account needs to be topped-up.
-    /// @param _superToken Supertoken which needs to be replenished.
-    /// @param _superTokenAmount Amount of supertoken to be replenished.
-    /// @dev This function assumes whatever given by StrollManager is correct. Therefore, all the necessary-
+    /// Function to top-up an account based on certain conditions pre-defined in the Manager contract.
+    /// @param user Address of the user whose account needs to be topped-up.
+    /// @param superToken Supertoken which needs to be replenished.
+    /// @param superTokenAmount Amount of supertoken to be replenished.
+    /// @dev This function assumes whatever given by Manager is correct. Therefore, all the necessary-
     /// checks such as if a top-up is required and if so how much amount needs to be topped up, do we have-
-    /// enough allowance to perform a top-up and so on must be performed in StrollManager only.
-    function topUp(
-        address _user,
-        ISuperToken _superToken,
-        uint256 _superTokenAmount
+    /// enough allowance to perform a top-up and so on must be performed in Manager only.
+    function Wrap(
+        address user,
+        ISuperToken superToken,
+        uint256 superTokenAmount
     ) external;
 
     /// Function to check whether a supertoken is supported by a strategy or not.
     /// @dev More specifically, this function checks whether the underlying token of the supertoken-
     /// is supported or not.
-    /// @param _superToken Supertoken which needs to be checked for support.
+    /// @param superToken Supertoken which needs to be checked for support.
     /// @return Boolean indicating the support of the supertoken.
-    function isSupportedSuperToken(ISuperToken _superToken)
+    function isSupportedSuperToken(ISuperToken superToken)
         external
         view
         returns (bool);
 
-    /// Function to change the StrollManager contract that a strategy interacts with.
+    /// Function to change the Manager contract that a strategy interacts with.
     /// This function can only be called by the owner of the strategy contract.
-    /// @param _newStrollManager Address of the new StrollManager contract the strategy should interact with.
-    function changeStrollManager(address _newStrollManager) external;
+    /// @param newManager Address of the new Manager contract the strategy should interact with.
+    function changeManager(address newManager) external;
 
     /// Function to withdraw any token locked in the contract in case of an emergency.
     /// Ideally, no tokens should ever be sent directly to the contract but in case it happens,
     /// this function can be used by the owner of the strategy contract to transfer all the locked tokens-
     /// to their address.
-    /// @param _token Address of the locked token which is to be transferred to the owner address.
-    function emergencyWithdraw(address _token) external;
+    /// @param token Address of the locked token which is to be transferred to the owner address.
+    function emergencyWithdraw(address token) external;
 }
